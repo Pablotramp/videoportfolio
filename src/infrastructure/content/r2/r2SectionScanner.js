@@ -35,6 +35,14 @@ function trimTrailingSlash(value) {
   return value.replace(/\/$/, '')
 }
 
+function hasHlsSegments(keys) {
+  return keys.some((key) => HLS_SEGMENT_EXTENSIONS.has(getExtension(key)))
+}
+
+function pickPreferredM3u8(keys) {
+  return keys.find((key) => getBaseName(key).toLowerCase() === 'master') ?? keys.find((key) => key.endsWith('.m3u8')) ?? null
+}
+
 /**
  * Classify and build typed item descriptors from the bucket keys
  * belonging to a section folder.
@@ -70,10 +78,8 @@ function classifyFolder(baseUrl, keys, folderPrefix) {
     return { contentType: 'audio', items }
   }
 
-  const rootM3u8Filename = directFiles.find((filename) => filename.endsWith('.m3u8'))
-  const hasRootHlsSegments = directFiles.some((filename) =>
-    HLS_SEGMENT_EXTENSIONS.has(getExtension(filename)),
-  )
+  const rootM3u8Filename = pickPreferredM3u8(directFiles)
+  const hasRootHlsSegments = hasHlsSegments(directFiles)
 
   if (rootM3u8Filename && hasRootHlsSegments) {
     const hlsFolder = trimTrailingSlash(folderPrefix)
@@ -105,24 +111,18 @@ function classifyFolder(baseUrl, keys, folderPrefix) {
 
   const hlsFolders = []
   for (const [subfolder, subRelKeys] of subfolderMap) {
-    const hasM3u8 = subRelKeys.some((k) => k.endsWith('.m3u8'))
-    const hasTs = subRelKeys.some((k) => k.endsWith('.ts'))
-    if (hasM3u8 && hasTs) hlsFolders.push({ subfolder, subRelKeys })
+    const m3u8Rel = pickPreferredM3u8(subRelKeys)
+    if (m3u8Rel && hasHlsSegments(subRelKeys)) hlsFolders.push({ subfolder, m3u8Rel })
   }
 
   if (hlsFolders.length > 0) {
-    const items = hlsFolders.map(({ subfolder, subRelKeys }) => {
-      // The first .m3u8 found is used as the entry point for the HLS stream.
-      // This assumes each HLS subfolder contains a single master playlist.
-      // If multiple .m3u8 files exist (e.g. master + variant playlists), the
-      // video-hls-packager component should resolve the correct manifest.
-      const m3u8Rel = subRelKeys.find((k) => k.endsWith('.m3u8'))
+    const items = hlsFolders.map(({ subfolder, m3u8Rel }) => {
       const hlsFolder = `${folderPrefix}${subfolder}`
       return {
         id: subfolder,
         itemType: 'hls',
         hlsFolder,
-        hlsManifestUrl: m3u8Rel ? toObjectUrl(baseUrl, `${folderPrefix}${m3u8Rel}`) : null,
+        hlsManifestUrl: toObjectUrl(baseUrl, `${folderPrefix}${m3u8Rel}`),
       }
     })
     return { contentType: 'hls', items }
@@ -187,7 +187,7 @@ export async function scanVideoSection(baseUrl, videoName) {
     return { contentType: 'hls', items: [] }
   }
 
-  const m3u8Key = keys.find((k) => k.endsWith('.m3u8'))
+  const m3u8Key = pickPreferredM3u8(keys)
   if (!m3u8Key) {
     console.warn(
       `[r2:scanner:video] No se encontró ningún .m3u8 en la carpeta "${videoName}".`,
