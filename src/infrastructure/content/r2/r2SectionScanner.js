@@ -69,13 +69,15 @@ function classifyFolder(baseUrl, keys, folderPrefix) {
   const hasRootSegments = directFiles.some((filename) => filename.endsWith('.ts'))
 
   if (rootManifest && hasRootSegments) {
+    const hlsFolder = folderPrefix.replace(/\/$/, '')
+
     return {
       contentType: 'hls',
       items: [
         {
-          id: folderPrefix.slice(0, -1),
+          id: hlsFolder,
           itemType: 'hls',
-          hlsFolder: folderPrefix.slice(0, -1),
+          hlsFolder,
           hlsManifestUrl: toObjectUrl(baseUrl, `${folderPrefix}${rootManifest}`),
         },
       ],
