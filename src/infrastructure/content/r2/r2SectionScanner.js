@@ -16,7 +16,38 @@
  * components themselves.
  */
 
-import { fetchBucketKeys, toBucketListingUrl, toObjectUrl } from './r2Utils.js'
+import {
+  fetchBucketKeys,
+  toBucketListingUrl,
+  toObjectUrl,
+  fetchManifest,
+  extractManifestKeys,
+} from './r2Utils.js'
+
+// ── Manifest cache ─────────────────────────────────────────────────────────────
+// The manifest is fetched once per bucket base URL during a page session and
+// cached here to avoid redundant network requests across multiple section loads.
+/** @type {Map<string, { hasManifest: boolean, keys: string[] }>} */
+const manifestCache = new Map()
+
+/**
+ * Return cached manifest keys for `baseUrl`, fetching/parsing on first access.
+ *
+ * @param {string} baseUrl
+ * @returns {Promise<{ hasManifest: boolean, keys: string[] }>}
+ */
+async function getManifestKeys(baseUrl) {
+  if (manifestCache.has(baseUrl)) return manifestCache.get(baseUrl)
+  const manifest = await fetchManifest(baseUrl)
+  const entry = {
+    hasManifest: Boolean(manifest && typeof manifest === 'object'),
+    keys: extractManifestKeys(manifest),
+  }
+  manifestCache.set(baseUrl, entry)
+  return entry
+}
+
+
 
 const AUDIO_EXTENSIONS = new Set(['m4a', 'mp3', 'aac', 'ogg', 'opus', 'flac', 'wav'])
 const HLS_SEGMENT_EXTENSIONS = new Set(['ts', 'm4s'])
@@ -56,10 +87,11 @@ function getTopLevelEntries(relativeKeys) {
   return entries
 }
 
-function buildScanDiagnostics(baseUrl, folderPrefix, keys, error = null) {
+function buildScanDiagnostics(baseUrl, folderPrefix, keys, error = null, source = 'listing') {
   const relativeKeys = keys.map((key) => key.slice(folderPrefix.length)).filter(Boolean)
 
   return {
+    source,
     folderPrefix,
     listingUrl: toBucketListingUrl(baseUrl, folderPrefix),
     foundEntries: getTopLevelEntries(relativeKeys),
@@ -188,23 +220,44 @@ function classifyFolder(baseUrl, keys, folderPrefix) {
 /**
  * Scan a folder-type section and classify its contents.
  *
+ * Resolution order:
+ *   1. `_manifest.json` file tree (filtered by section folder)
+ *   2. Bucket listing (works when the bucket allows public XML listing)
+ *   3. Returns an empty result with diagnostics when both fail
+ *
  * A folder section may contain either:
  *   - Audio files (.m4a etc.) directly in the folder
  *   - HLS sub-folders (each subfolder = one video stream)
  *
  * @param {string} baseUrl    - Public R2 base URL (no trailing slash)
  * @param {string} folderName - Section entryName (= folder name in R2)
- * @returns {Promise<{ contentType: 'audio'|'hls'|'unknown', items: Array }>}
+ * @returns {Promise<{ contentType: 'audio'|'hls'|'unknown', items: Array, diagnostics: object }>}
  */
 export async function scanFolderSection(baseUrl, folderName) {
   const folderPrefix = `${folderName.trim()}/`
+
+  // ── 1. Manifest tree (primary) ─────────────────────────────────────────────
+  const manifestSource = await getManifestKeys(baseUrl)
+  if (manifestSource.hasManifest) {
+    const manifestKeys = manifestSource.keys.filter((key) => key.startsWith(folderPrefix))
+    const diagnostics = buildScanDiagnostics(baseUrl, folderPrefix, manifestKeys, null, 'manifest')
+    if (manifestKeys.length === 0) {
+      return { contentType: 'unknown', items: [], diagnostics }
+    }
+    console.info(
+      `[r2:scanner:folder] "${folderName}" resuelto desde _manifest.json (árbol de archivos).`,
+    )
+    return { ...classifyFolder(baseUrl, manifestKeys, folderPrefix), diagnostics }
+  }
+
+  // ── 2. Bucket listing (fallback) ───────────────────────────────────────────
   let keys
 
   try {
     keys = await fetchBucketKeys(baseUrl, folderPrefix)
   } catch (error) {
     console.warn(
-      `[r2:scanner:folder] No se pudo listar la carpeta "${folderName}".`,
+      `[r2:scanner:folder] No se pudo listar la carpeta "${folderName}". Si el bucket usa *.r2.dev, genera _manifest.json con video-hls-packager.`,
       error,
     )
     return {
@@ -225,22 +278,55 @@ export async function scanFolderSection(baseUrl, folderName) {
 /**
  * Scan a video-type section (single HLS stream).
  *
+ * Resolution order:
+ *   1. `_manifest.json` file tree (filtered by section folder)
+ *   2. Bucket listing (works when the bucket allows public XML listing)
+ *   3. Returns an empty result with diagnostics when both fail
+ *
  * The entryName maps to a folder in R2 that contains one .m3u8 manifest
  * and its .ts segments.
  *
  * @param {string} baseUrl    - Public R2 base URL (no trailing slash)
  * @param {string} videoName  - Section entryName (= HLS folder name in R2)
- * @returns {Promise<{ contentType: 'hls', items: Array }>}
+ * @returns {Promise<{ contentType: 'hls', items: Array, diagnostics: object }>}
  */
 export async function scanVideoSection(baseUrl, videoName) {
   const folderPrefix = `${videoName.trim()}/`
+
+  // ── 1. Manifest tree (primary) ─────────────────────────────────────────────
+  const manifestSource = await getManifestKeys(baseUrl)
+  if (manifestSource.hasManifest) {
+    const manifestKeys = manifestSource.keys.filter((key) => key.startsWith(folderPrefix))
+    const diagnostics = buildScanDiagnostics(baseUrl, folderPrefix, manifestKeys, null, 'manifest')
+    const m3u8Key = pickPreferredM3u8(manifestKeys)
+    if (!m3u8Key) {
+      return { contentType: 'hls', items: [], diagnostics }
+    }
+    console.info(
+      `[r2:scanner:video] "${videoName}" resuelto desde _manifest.json (árbol de archivos).`,
+    )
+    return {
+      contentType: 'hls',
+      diagnostics,
+      items: [
+        {
+          id: videoName,
+          itemType: 'hls',
+          hlsFolder: videoName,
+          hlsManifestUrl: toObjectUrl(baseUrl, m3u8Key),
+        },
+      ],
+    }
+  }
+
+  // ── 2. Bucket listing (fallback) ───────────────────────────────────────────
   let keys
 
   try {
     keys = await fetchBucketKeys(baseUrl, folderPrefix)
   } catch (error) {
     console.warn(
-      `[r2:scanner:video] No se pudo listar la carpeta de vídeo "${videoName}".`,
+      `[r2:scanner:video] No se pudo listar la carpeta de vídeo "${videoName}". Si el bucket usa *.r2.dev, genera _manifest.json con video-hls-packager.`,
       error,
     )
     return {

@@ -2,6 +2,8 @@ import {
   fetchBucketKeys,
   createKeyResolver,
   fetchJson,
+  fetchManifest,
+  extractManifestKeys,
   toObjectUrl,
 } from './r2Utils.js'
 
@@ -43,15 +45,15 @@ function logSectionImageResolution(section, imgName, selectedKey, strategy) {
   )
 }
 
-async function resolveSectionImageKey(baseUrl, section, resolver, hasListing) {
+async function resolveSectionImageKey(baseUrl, section, resolver, hasKeyIndex, keyIndexLabel) {
   const imgName = section.img.trim()
   const candidates = getSectionImageCandidates(section, imgName)
 
-  if (hasListing) {
+  if (hasKeyIndex) {
     for (const candidate of candidates) {
       const resolvedKey = resolver.resolveKey(candidate)
       if (resolvedKey) {
-        logSectionImageResolution(section, imgName, resolvedKey, 'listado del bucket')
+        logSectionImageResolution(section, imgName, resolvedKey, keyIndexLabel)
         return resolvedKey
       }
     }
@@ -98,24 +100,40 @@ export function createR2PortfolioSource(config = {}) {
 
       const sections = Array.isArray(estructuraJson.sections) ? estructuraJson.sections : []
       let bucketKeys = []
+      let keyIndexLabel = 'listado del bucket'
 
-      try {
-        bucketKeys = await fetchBucketKeys(baseUrl)
-      } catch (error) {
-        console.warn(
-          '[r2:listing:warning] No se pudo listar el bucket. Se usará resolución directa por nombre.',
-          error,
-        )
+      const manifest = await fetchManifest(baseUrl)
+      const manifestKeys = extractManifestKeys(manifest)
+      if (manifestKeys.length > 0) {
+        bucketKeys = manifestKeys
+        keyIndexLabel = 'árbol de _manifest.json'
+      }
+
+      if (bucketKeys.length === 0) {
+        try {
+          bucketKeys = await fetchBucketKeys(baseUrl)
+        } catch (error) {
+          console.warn(
+            '[r2:listing:warning] No se pudo leer _manifest.json ni listar el bucket. Se usará resolución directa por nombre.',
+            error,
+          )
+        }
       }
 
       const resolver = createKeyResolver(bucketKeys)
-      const hasListing = bucketKeys.length > 0
+      const hasKeyIndex = bucketKeys.length > 0
 
       const sectionImagesByName = {}
       for (const section of sections) {
         if (typeof section.img === 'string' && section.img.trim()) {
           const imgName = section.img.trim()
-          const resolvedImageKey = await resolveSectionImageKey(baseUrl, section, resolver, hasListing)
+          const resolvedImageKey = await resolveSectionImageKey(
+            baseUrl,
+            section,
+            resolver,
+            hasKeyIndex,
+            keyIndexLabel,
+          )
           sectionImagesByName[imgName] = toObjectUrl(baseUrl, resolvedImageKey)
         }
       }
