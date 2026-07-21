@@ -30,6 +30,10 @@ function getBaseName(filename) {
   return lastDot !== -1 ? filename.slice(0, lastDot) : filename
 }
 
+function trimTrailingSlash(value) {
+  return value.replace(/\/$/, '')
+}
+
 /**
  * Classify and build typed item descriptors from the bucket keys
  * belonging to a section folder.
@@ -65,11 +69,11 @@ function classifyFolder(baseUrl, keys, folderPrefix) {
     return { contentType: 'audio', items }
   }
 
-  const rootManifest = directFiles.find((filename) => filename.endsWith('.m3u8'))
+  const rootManifestFilename = directFiles.find((filename) => filename.endsWith('.m3u8'))
   const hasRootSegments = directFiles.some((filename) => filename.endsWith('.ts'))
 
-  if (rootManifest && hasRootSegments) {
-    const hlsFolder = folderPrefix.replace(/\/$/, '')
+  if (rootManifestFilename && hasRootSegments) {
+    const hlsFolder = trimTrailingSlash(folderPrefix)
 
     return {
       contentType: 'hls',
@@ -78,7 +82,7 @@ function classifyFolder(baseUrl, keys, folderPrefix) {
           id: hlsFolder,
           itemType: 'hls',
           hlsFolder,
-          hlsManifestUrl: toObjectUrl(baseUrl, `${folderPrefix}${rootManifest}`),
+          hlsManifestUrl: toObjectUrl(baseUrl, `${folderPrefix}${rootManifestFilename}`),
         },
       ],
     }
