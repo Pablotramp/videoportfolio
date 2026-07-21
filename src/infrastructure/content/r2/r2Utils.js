@@ -26,8 +26,9 @@ export function toObjectUrl(baseUrl, key) {
  * @returns {string}
  */
 export function toBucketListingUrl(baseUrl, prefix = '') {
-  const prefixParam = prefix ? `&prefix=${encodeURIComponent(prefix)}` : ''
-  return `${baseUrl}/?list-type=2${prefixParam}`
+  const searchParams = new URLSearchParams({ 'list-type': '2' })
+  if (prefix) searchParams.set('prefix', prefix)
+  return `${baseUrl}/?${searchParams.toString()}`
 }
 
 /**
