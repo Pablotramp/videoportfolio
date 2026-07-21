@@ -33,8 +33,6 @@
  *   - Sections without a valid label or origin are skipped.
  */
 
-const VIDEO_EXTENSIONS = new Set(['mp4', 'webm', 'mov', 'm4v', 'ogv', 'ogg', 'm3u8'])
-
 export const RESERVED_METADATA_FIELDS = new Set(['title', 'img'])
 
 /**

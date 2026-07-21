@@ -19,6 +19,18 @@ export function toObjectUrl(baseUrl, key) {
 }
 
 /**
+ * Build the public bucket-listing URL for a given prefix.
+ *
+ * @param {string} baseUrl
+ * @param {string} [prefix]
+ * @returns {string}
+ */
+export function toBucketListingUrl(baseUrl, prefix = '') {
+  const prefixParam = prefix ? `&prefix=${encodeURIComponent(prefix)}` : ''
+  return `${baseUrl}/?list-type=2${prefixParam}`
+}
+
+/**
  * Unescape XML entities in bucket listing responses.
  *
  * @param {string} text

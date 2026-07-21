@@ -5,6 +5,7 @@ import AudioPlayerPlaceholder from '../assets/components/AudioPlayerPlaceholder.
 import FileViewerPlaceholder from '../assets/components/FileViewerPlaceholder.jsx'
 
 const DEFAULT_SECTION_BACKGROUND = '#f8f7f4'
+const MAX_DEBUG_ITEMS = 25
 
 function isDarkHexColor(color) {
   if (typeof color !== 'string') return false
@@ -25,6 +26,30 @@ function isDarkHexColor(color) {
   return luminance < 0.52
 }
 
+function renderDebugList(items, emptyLabel) {
+  if (!Array.isArray(items) || items.length === 0) {
+    return <p className="m-0 text-xs opacity-70">{emptyLabel}</p>
+  }
+
+  const visibleItems = items.slice(0, MAX_DEBUG_ITEMS)
+  const hiddenCount = items.length - visibleItems.length
+
+  return (
+    <div className="grid gap-2">
+      <ul className="m-0 list-disc pl-5 text-xs opacity-80">
+        {visibleItems.map((item) => (
+          <li key={item} className="break-all font-mono">
+            {item}
+          </li>
+        ))}
+      </ul>
+      {hiddenCount > 0 && (
+        <p className="m-0 text-xs opacity-70">… y {hiddenCount} elemento(s) más.</p>
+      )}
+    </div>
+  )
+}
+
 /**
  * SeccionPage — Dispatcher intermediario de contenido de sección.
  *
@@ -40,7 +65,7 @@ function SeccionPage({ sections, r2BaseUrl }) {
   const { slug } = useParams()
   const section = sections.find((entry) => entry.slug === slug)
 
-  const { contentType, items, loading, error } = useSection(section ?? null, r2BaseUrl)
+  const { contentType, items, diagnostics, loading, error } = useSection(section ?? null, r2BaseUrl)
 
   if (!section) {
     return (
@@ -121,11 +146,79 @@ function SeccionPage({ sections, r2BaseUrl }) {
 
         {/* Empty or unrecognised content */}
         {!loading && !error && section.type !== 'file' && items.length === 0 && (
-          <p className="text-sm opacity-60">
-            {contentType === 'unknown'
-              ? 'Tipo de contenido no reconocido en la carpeta R2.'
-              : 'No se encontró contenido en esta sección.'}
-          </p>
+          <div className="grid gap-4 rounded border border-black/10 bg-white/70 p-4 text-zinc-900">
+            <p className="m-0 text-sm opacity-70">
+              {contentType === 'unknown'
+                ? 'Tipo de contenido no reconocido en la carpeta R2.'
+                : 'No se encontró contenido en esta sección.'}
+            </p>
+
+            {diagnostics && (
+              <dl className="m-0 grid gap-3 text-xs">
+                <div className="grid gap-1">
+                  <dt className="font-mono uppercase tracking-[0.12em] opacity-60">
+                    Prefijo buscado
+                  </dt>
+                  <dd className="m-0 break-all font-mono">{diagnostics.folderPrefix ?? '—'}</dd>
+                </div>
+
+                <div className="grid gap-1">
+                  <dt className="font-mono uppercase tracking-[0.12em] opacity-60">
+                    URL de búsqueda
+                  </dt>
+                  <dd className="m-0 break-all font-mono">
+                    {diagnostics.listingUrl ? (
+                      <a
+                        className="underline"
+                        href={diagnostics.listingUrl}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        {diagnostics.listingUrl}
+                      </a>
+                    ) : (
+                      '—'
+                    )}
+                  </dd>
+                </div>
+
+                <div className="grid gap-1">
+                  <dt className="font-mono uppercase tracking-[0.12em] opacity-60">
+                    Carpetas / archivos encontrados
+                  </dt>
+                  <dd className="m-0">
+                    {renderDebugList(
+                      diagnostics.foundEntries,
+                      'El listado de R2 no devolvió carpetas ni archivos para ese prefijo.',
+                    )}
+                  </dd>
+                </div>
+
+                <div className="grid gap-1">
+                  <dt className="font-mono uppercase tracking-[0.12em] opacity-60">
+                    Claves devueltas por R2
+                  </dt>
+                  <dd className="m-0">
+                    {renderDebugList(
+                      diagnostics.foundKeys,
+                      'R2 no devolvió ninguna clave para esa búsqueda.',
+                    )}
+                  </dd>
+                </div>
+
+                {diagnostics.errorMessage && (
+                  <div className="grid gap-1">
+                    <dt className="font-mono uppercase tracking-[0.12em] text-red-700">
+                      Error del listado
+                    </dt>
+                    <dd className="m-0 break-all font-mono text-red-700">
+                      {diagnostics.errorMessage}
+                    </dd>
+                  </div>
+                )}
+              </dl>
+            )}
+          </div>
         )}
       </div>
     </section>

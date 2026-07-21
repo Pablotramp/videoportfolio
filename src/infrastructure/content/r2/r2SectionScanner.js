@@ -16,7 +16,7 @@
  * components themselves.
  */
 
-import { fetchBucketKeys, toObjectUrl } from './r2Utils.js'
+import { fetchBucketKeys, toBucketListingUrl, toObjectUrl } from './r2Utils.js'
 
 const AUDIO_EXTENSIONS = new Set(['m4a', 'mp3', 'aac', 'ogg', 'opus', 'flac', 'wav'])
 const HLS_SEGMENT_EXTENSIONS = new Set(['ts', 'm4s'])
@@ -39,6 +39,33 @@ function getBaseName(filename) {
  */
 function trimTrailingSlash(value) {
   return value.replace(/\/$/, '')
+}
+
+function getTopLevelEntries(relativeKeys) {
+  const entries = []
+  const seen = new Set()
+
+  for (const key of relativeKeys) {
+    if (!key) continue
+    const [entryName] = key.split('/')
+    if (!entryName || seen.has(entryName)) continue
+    seen.add(entryName)
+    entries.push(entryName)
+  }
+
+  return entries
+}
+
+function buildScanDiagnostics(baseUrl, folderPrefix, keys, error = null) {
+  const relativeKeys = keys.map((key) => key.slice(folderPrefix.length)).filter(Boolean)
+
+  return {
+    folderPrefix,
+    listingUrl: toBucketListingUrl(baseUrl, folderPrefix),
+    foundEntries: getTopLevelEntries(relativeKeys),
+    foundKeys: keys,
+    errorMessage: error instanceof Error ? error.message : null,
+  }
 }
 
 /**
@@ -180,14 +207,19 @@ export async function scanFolderSection(baseUrl, folderName) {
       `[r2:scanner:folder] No se pudo listar la carpeta "${folderName}".`,
       error,
     )
-    return { contentType: 'unknown', items: [] }
+    return {
+      contentType: 'unknown',
+      items: [],
+      diagnostics: buildScanDiagnostics(baseUrl, folderPrefix, [], error),
+    }
   }
 
+  const diagnostics = buildScanDiagnostics(baseUrl, folderPrefix, keys)
   if (keys.length === 0) {
-    return { contentType: 'unknown', items: [] }
+    return { contentType: 'unknown', items: [], diagnostics }
   }
 
-  return classifyFolder(baseUrl, keys, folderPrefix)
+  return { ...classifyFolder(baseUrl, keys, folderPrefix), diagnostics }
 }
 
 /**
@@ -211,19 +243,25 @@ export async function scanVideoSection(baseUrl, videoName) {
       `[r2:scanner:video] No se pudo listar la carpeta de vídeo "${videoName}".`,
       error,
     )
-    return { contentType: 'hls', items: [] }
+    return {
+      contentType: 'hls',
+      items: [],
+      diagnostics: buildScanDiagnostics(baseUrl, folderPrefix, [], error),
+    }
   }
 
+  const diagnostics = buildScanDiagnostics(baseUrl, folderPrefix, keys)
   const m3u8Key = pickPreferredM3u8(keys)
   if (!m3u8Key) {
     console.warn(
       `[r2:scanner:video] No se encontró ningún .m3u8 en la carpeta "${videoName}".`,
     )
-    return { contentType: 'hls', items: [] }
+    return { contentType: 'hls', items: [], diagnostics }
   }
 
   return {
     contentType: 'hls',
+    diagnostics,
     items: [
       {
         id: videoName,

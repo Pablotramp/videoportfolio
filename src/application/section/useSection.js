@@ -4,6 +4,7 @@ import { scanFolderSection, scanVideoSection } from '../../infrastructure/conten
 const DEFAULT_STATE = {
   contentType: null,
   items: [],
+  diagnostics: null,
   loading: true,
   error: null,
 }
@@ -25,7 +26,7 @@ const DEFAULT_STATE = {
  *
  * @param {{ type: string, entryName: string, name: string } | null} section
  * @param {string | null} r2BaseUrl
- * @returns {{ contentType: string|null, items: Array, loading: boolean, error: Error|null }}
+ * @returns {{ contentType: string|null, items: Array, diagnostics: object|null, loading: boolean, error: Error|null }}
  */
 export function useSection(section, r2BaseUrl) {
   const [state, setState] = useState(() => ({
@@ -35,7 +36,6 @@ export function useSection(section, r2BaseUrl) {
 
   useEffect(() => {
     if (!section || !r2BaseUrl) {
-      setState({ ...DEFAULT_STATE, loading: false })
       return undefined
     }
 
@@ -62,11 +62,23 @@ export function useSection(section, r2BaseUrl) {
         }
 
         if (!cancelled) {
-          setState({ ...result, loading: false, error: null })
+          setState({
+            contentType: result.contentType ?? null,
+            items: Array.isArray(result.items) ? result.items : [],
+            diagnostics: result.diagnostics ?? null,
+            loading: false,
+            error: null,
+          })
         }
       } catch (error) {
         if (!cancelled) {
-          setState({ contentType: null, items: [], loading: false, error })
+          setState({
+            contentType: null,
+            items: [],
+            diagnostics: null,
+            loading: false,
+            error,
+          })
         }
       }
     }
@@ -77,6 +89,10 @@ export function useSection(section, r2BaseUrl) {
       cancelled = true
     }
   }, [section, r2BaseUrl])
+
+  if (!section || !r2BaseUrl) {
+    return { ...DEFAULT_STATE, loading: false }
+  }
 
   return state
 }
