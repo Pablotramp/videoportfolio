@@ -116,7 +116,7 @@ function classifyFolder(baseUrl, keys, folderPrefix) {
  * @returns {Promise<{ contentType: 'audio'|'hls'|'unknown', items: Array }>}
  */
 export async function scanFolderSection(baseUrl, folderName) {
-  const folderPrefix = `${folderName}/`
+  const folderPrefix = `${folderName.trim()}/`
   let keys
 
   try {
@@ -147,7 +147,7 @@ export async function scanFolderSection(baseUrl, folderName) {
  * @returns {Promise<{ contentType: 'hls', items: Array }>}
  */
 export async function scanVideoSection(baseUrl, videoName) {
-  const folderPrefix = `${videoName}/`
+  const folderPrefix = `${videoName.trim()}/`
   let keys
 
   try {
