@@ -31,14 +31,33 @@ function getBaseName(filename) {
   return lastDot !== -1 ? filename.slice(0, lastDot) : filename
 }
 
+/**
+ * Remove a single trailing slash from a folder-like key prefix.
+ *
+ * @param {string} value
+ * @returns {string}
+ */
 function trimTrailingSlash(value) {
   return value.replace(/\/$/, '')
 }
 
+/**
+ * Check whether a group of keys contains HLS media segment files.
+ *
+ * @param {string[]} keys
+ * @returns {boolean}
+ */
 function hasHlsSegments(keys) {
   return keys.some((key) => HLS_SEGMENT_EXTENSIONS.has(getExtension(key)))
 }
 
+/**
+ * Pick the preferred HLS playlist from a group of keys.
+ * Prioritises "master.m3u8" and otherwise falls back to the first playlist found.
+ *
+ * @param {string[]} keys
+ * @returns {string | null}
+ */
 function pickPreferredM3u8(keys) {
   let fallback = null
 
