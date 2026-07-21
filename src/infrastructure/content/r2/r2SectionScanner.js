@@ -16,68 +16,35 @@
  * components themselves.
  */
 
-import { fetchBucketKeys, toBucketListingUrl, toObjectUrl, fetchManifest } from './r2Utils.js'
+import {
+  fetchBucketKeys,
+  toBucketListingUrl,
+  toObjectUrl,
+  fetchManifest,
+  extractManifestKeys,
+} from './r2Utils.js'
 
 // ── Manifest cache ─────────────────────────────────────────────────────────────
 // The manifest is fetched once per bucket base URL during a page session and
 // cached here to avoid redundant network requests across multiple section loads.
-/** @type {Map<string, object|null>} */
+/** @type {Map<string, { hasManifest: boolean, keys: string[] }>} */
 const manifestCache = new Map()
 
 /**
- * Return the cached manifest for `baseUrl`, fetching it on first access.
- * Stores `null` when the manifest is absent or invalid so we never retry.
+ * Return cached manifest keys for `baseUrl`, fetching/parsing on first access.
  *
  * @param {string} baseUrl
- * @returns {Promise<object|null>}
+ * @returns {Promise<{ hasManifest: boolean, keys: string[] }>}
  */
-async function getManifest(baseUrl) {
+async function getManifestKeys(baseUrl) {
   if (manifestCache.has(baseUrl)) return manifestCache.get(baseUrl)
   const manifest = await fetchManifest(baseUrl)
-  manifestCache.set(baseUrl, manifest)
-  return manifest
-}
-
-/**
- * Build typed item descriptors from a manifest section entry.
- * Returns `null` when the entry is missing or malformed.
- *
- * @param {string} baseUrl
- * @param {object|undefined} manifestSection - Entry from manifest.sections[entryName]
- * @returns {{ contentType: string, items: Array, diagnostics: object } | null}
- */
-function buildResultFromManifestSection(baseUrl, manifestSection) {
-  if (!manifestSection || !Array.isArray(manifestSection.items)) return null
-
-  const items = manifestSection.items.flatMap((item) => {
-    if (item.itemType === 'hls' && item.hlsFolder && item.m3u8) {
-      return [
-        {
-          id: item.id ?? item.hlsFolder,
-          itemType: 'hls',
-          hlsFolder: item.hlsFolder,
-          hlsManifestUrl: toObjectUrl(baseUrl, item.m3u8),
-        },
-      ]
-    }
-    if (item.itemType === 'audio' && item.audioKey) {
-      return [
-        {
-          id: item.id ?? item.audioKey,
-          itemType: 'audio',
-          audioKey: item.audioKey,
-          audioUrl: toObjectUrl(baseUrl, item.audioKey),
-        },
-      ]
-    }
-    return []
-  })
-
-  return {
-    contentType: manifestSection.contentType ?? 'unknown',
-    items,
-    diagnostics: { source: 'manifest' },
+  const entry = {
+    hasManifest: Boolean(manifest && typeof manifest === 'object'),
+    keys: extractManifestKeys(manifest),
   }
+  manifestCache.set(baseUrl, entry)
+  return entry
 }
 
 
@@ -120,11 +87,11 @@ function getTopLevelEntries(relativeKeys) {
   return entries
 }
 
-function buildScanDiagnostics(baseUrl, folderPrefix, keys, error = null) {
+function buildScanDiagnostics(baseUrl, folderPrefix, keys, error = null, source = 'listing') {
   const relativeKeys = keys.map((key) => key.slice(folderPrefix.length)).filter(Boolean)
 
   return {
-    source: 'listing',
+    source,
     folderPrefix,
     listingUrl: toBucketListingUrl(baseUrl, folderPrefix),
     foundEntries: getTopLevelEntries(relativeKeys),
@@ -254,7 +221,7 @@ function classifyFolder(baseUrl, keys, folderPrefix) {
  * Scan a folder-type section and classify its contents.
  *
  * Resolution order:
- *   1. `_manifest.json` entry for `folderName`  → returned directly
+ *   1. `_manifest.json` file tree (filtered by section folder)
  *   2. Bucket listing (works when the bucket allows public XML listing)
  *   3. Returns an empty result with diagnostics when both fail
  *
@@ -267,19 +234,23 @@ function classifyFolder(baseUrl, keys, folderPrefix) {
  * @returns {Promise<{ contentType: 'audio'|'hls'|'unknown', items: Array, diagnostics: object }>}
  */
 export async function scanFolderSection(baseUrl, folderName) {
-  // ── 1. Manifest (primary) ──────────────────────────────────────────────────
-  const manifest = await getManifest(baseUrl)
-  const manifestSection = manifest?.sections?.[folderName]
-  if (manifestSection) {
-    const result = buildResultFromManifestSection(baseUrl, manifestSection)
-    if (result) {
-      console.info(`[r2:scanner:folder] "${folderName}" resuelto desde _manifest.json.`)
-      return result
+  const folderPrefix = `${folderName.trim()}/`
+
+  // ── 1. Manifest tree (primary) ─────────────────────────────────────────────
+  const manifestSource = await getManifestKeys(baseUrl)
+  if (manifestSource.hasManifest) {
+    const manifestKeys = manifestSource.keys.filter((key) => key.startsWith(folderPrefix))
+    const diagnostics = buildScanDiagnostics(baseUrl, folderPrefix, manifestKeys, null, 'manifest')
+    if (manifestKeys.length === 0) {
+      return { contentType: 'unknown', items: [], diagnostics }
     }
+    console.info(
+      `[r2:scanner:folder] "${folderName}" resuelto desde _manifest.json (árbol de archivos).`,
+    )
+    return { ...classifyFolder(baseUrl, manifestKeys, folderPrefix), diagnostics }
   }
 
   // ── 2. Bucket listing (fallback) ───────────────────────────────────────────
-  const folderPrefix = `${folderName.trim()}/`
   let keys
 
   try {
@@ -308,7 +279,7 @@ export async function scanFolderSection(baseUrl, folderName) {
  * Scan a video-type section (single HLS stream).
  *
  * Resolution order:
- *   1. `_manifest.json` entry for `videoName`   → returned directly
+ *   1. `_manifest.json` file tree (filtered by section folder)
  *   2. Bucket listing (works when the bucket allows public XML listing)
  *   3. Returns an empty result with diagnostics when both fail
  *
@@ -320,19 +291,35 @@ export async function scanFolderSection(baseUrl, folderName) {
  * @returns {Promise<{ contentType: 'hls', items: Array, diagnostics: object }>}
  */
 export async function scanVideoSection(baseUrl, videoName) {
-  // ── 1. Manifest (primary) ──────────────────────────────────────────────────
-  const manifest = await getManifest(baseUrl)
-  const manifestSection = manifest?.sections?.[videoName]
-  if (manifestSection) {
-    const result = buildResultFromManifestSection(baseUrl, manifestSection)
-    if (result) {
-      console.info(`[r2:scanner:video] "${videoName}" resuelto desde _manifest.json.`)
-      return result
+  const folderPrefix = `${videoName.trim()}/`
+
+  // ── 1. Manifest tree (primary) ─────────────────────────────────────────────
+  const manifestSource = await getManifestKeys(baseUrl)
+  if (manifestSource.hasManifest) {
+    const manifestKeys = manifestSource.keys.filter((key) => key.startsWith(folderPrefix))
+    const diagnostics = buildScanDiagnostics(baseUrl, folderPrefix, manifestKeys, null, 'manifest')
+    const m3u8Key = pickPreferredM3u8(manifestKeys)
+    if (!m3u8Key) {
+      return { contentType: 'hls', items: [], diagnostics }
+    }
+    console.info(
+      `[r2:scanner:video] "${videoName}" resuelto desde _manifest.json (árbol de archivos).`,
+    )
+    return {
+      contentType: 'hls',
+      diagnostics,
+      items: [
+        {
+          id: videoName,
+          itemType: 'hls',
+          hlsFolder: videoName,
+          hlsManifestUrl: toObjectUrl(baseUrl, m3u8Key),
+        },
+      ],
     }
   }
 
   // ── 2. Bucket listing (fallback) ───────────────────────────────────────────
-  const folderPrefix = `${videoName.trim()}/`
   let keys
 
   try {
