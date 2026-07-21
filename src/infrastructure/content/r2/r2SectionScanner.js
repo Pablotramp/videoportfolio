@@ -40,7 +40,15 @@ function hasHlsSegments(keys) {
 }
 
 function pickPreferredM3u8(keys) {
-  return keys.find((key) => getBaseName(key).toLowerCase() === 'master') ?? keys.find((key) => key.endsWith('.m3u8')) ?? null
+  let fallback = null
+
+  for (const key of keys) {
+    if (!key.endsWith('.m3u8')) continue
+    if (getBaseName(key).toLowerCase() === 'master') return key
+    if (!fallback) fallback = key
+  }
+
+  return fallback
 }
 
 /**
@@ -82,15 +90,15 @@ function classifyFolder(baseUrl, keys, folderPrefix) {
   const hasRootHlsSegments = hasHlsSegments(directFiles)
 
   if (rootM3u8Filename && hasRootHlsSegments) {
-    const hlsFolder = trimTrailingSlash(folderPrefix)
+    const rootFolderKey = trimTrailingSlash(folderPrefix)
 
     return {
       contentType: 'hls',
       items: [
         {
-          id: hlsFolder,
+          id: rootFolderKey,
           itemType: 'hls',
-          hlsFolder,
+          hlsFolder: rootFolderKey,
           hlsManifestUrl: toObjectUrl(baseUrl, `${folderPrefix}${rootM3u8Filename}`),
         },
       ],
