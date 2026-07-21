@@ -85,6 +85,10 @@ function classifyFolder(baseUrl, keys, folderPrefix) {
 
   if (hlsFolders.length > 0) {
     const items = hlsFolders.map(({ subfolder, subRelKeys }) => {
+      // The first .m3u8 found is used as the entry point for the HLS stream.
+      // This assumes each HLS subfolder contains a single master playlist.
+      // If multiple .m3u8 files exist (e.g. master + variant playlists), the
+      // video-hls-packager component should resolve the correct manifest.
       const m3u8Rel = subRelKeys.find((k) => k.endsWith('.m3u8'))
       const hlsFolder = `${folderPrefix}${subfolder}`
       return {

@@ -62,10 +62,6 @@ function resolveSectionType(entry) {
   if (entry.video) return 'video'
   if (entry.folder) return 'folder'
   if (entry.file) return 'file'
-  const file = entry.file ?? ''
-  const lastDot = file.lastIndexOf('.')
-  const ext = lastDot !== -1 ? file.slice(lastDot + 1).toLowerCase() : ''
-  if (VIDEO_EXTENSIONS.has(ext)) return 'video'
   return 'folder'
 }
 

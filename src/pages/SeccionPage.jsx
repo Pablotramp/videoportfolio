@@ -4,8 +4,6 @@ import HlsPlayerPlaceholder from '../assets/components/HlsPlayerPlaceholder.jsx'
 import AudioPlayerPlaceholder from '../assets/components/AudioPlayerPlaceholder.jsx'
 import FileViewerPlaceholder from '../assets/components/FileViewerPlaceholder.jsx'
 
-const HEADER_HEIGHT = 64
-const FOOTER_HEIGHT = 41
 const DEFAULT_SECTION_BACKGROUND = '#f8f7f4'
 
 function isDarkHexColor(color) {
@@ -64,12 +62,11 @@ function SeccionPage({ sections, r2BaseUrl }) {
 
   const sectionSurfaceColor = section.backgroundColor ?? DEFAULT_SECTION_BACKGROUND
   const sectionTextClass = isDarkHexColor(sectionSurfaceColor) ? 'text-stone-100' : 'text-zinc-950'
-  const minHeight = `calc(100dvh - ${HEADER_HEIGHT}px - var(--footer-h, ${FOOTER_HEIGHT}px))`
 
   return (
     <section
       className={`section-page--fullheight w-full ${sectionTextClass}`}
-      style={{ backgroundColor: sectionSurfaceColor, minHeight }}
+      style={{ backgroundColor: sectionSurfaceColor }}
     >
       <div className="mx-auto grid w-full max-w-[1248px] gap-6 px-6 py-8 md:py-10">
         <h1 className="m-0 font-serif text-4xl font-semibold tracking-tight md:text-5xl">
