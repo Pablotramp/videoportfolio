@@ -19,6 +19,7 @@
 import { fetchBucketKeys, toObjectUrl } from './r2Utils.js'
 
 const AUDIO_EXTENSIONS = new Set(['m4a', 'mp3', 'aac', 'ogg', 'opus', 'flac', 'wav'])
+const HLS_SEGMENT_EXTENSIONS = new Set(['ts', 'm4s'])
 
 function getExtension(filename) {
   const lastDot = filename.lastIndexOf('.')
@@ -69,10 +70,12 @@ function classifyFolder(baseUrl, keys, folderPrefix) {
     return { contentType: 'audio', items }
   }
 
-  const rootManifestFilename = directFiles.find((filename) => filename.endsWith('.m3u8'))
-  const hasRootSegments = directFiles.some((filename) => filename.endsWith('.ts'))
+  const rootM3u8Filename = directFiles.find((filename) => filename.endsWith('.m3u8'))
+  const hasRootHlsSegments = directFiles.some((filename) =>
+    HLS_SEGMENT_EXTENSIONS.has(getExtension(filename)),
+  )
 
-  if (rootManifestFilename && hasRootSegments) {
+  if (rootM3u8Filename && hasRootHlsSegments) {
     const hlsFolder = trimTrailingSlash(folderPrefix)
 
     return {
@@ -82,7 +85,7 @@ function classifyFolder(baseUrl, keys, folderPrefix) {
           id: hlsFolder,
           itemType: 'hls',
           hlsFolder,
-          hlsManifestUrl: toObjectUrl(baseUrl, `${folderPrefix}${rootManifestFilename}`),
+          hlsManifestUrl: toObjectUrl(baseUrl, `${folderPrefix}${rootM3u8Filename}`),
         },
       ],
     }
