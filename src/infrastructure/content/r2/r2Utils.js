@@ -1,0 +1,150 @@
+import { normalizeLookupValue } from '../../../assets/utils/normalizeLookupValue.js'
+
+const MAX_LISTING_PAGES = 50
+
+/**
+ * Build a public URL for an R2 object key.
+ * Each path segment is percent-encoded independently.
+ *
+ * @param {string} baseUrl - Public bucket base URL (no trailing slash)
+ * @param {string} key     - Object key (may contain slashes)
+ * @returns {string}
+ */
+export function toObjectUrl(baseUrl, key) {
+  const encodedKey = key
+    .split('/')
+    .map((segment) => encodeURIComponent(segment))
+    .join('/')
+  return `${baseUrl}/${encodedKey}`
+}
+
+/**
+ * Unescape XML entities in bucket listing responses.
+ *
+ * @param {string} text
+ * @returns {string}
+ */
+export function decodeXmlEntities(text = '') {
+  return text
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, '&')
+}
+
+/**
+ * List all object keys in an R2 bucket, optionally filtered by a prefix.
+ * Follows continuation tokens to page through results.
+ *
+ * @param {string} baseUrl  - Public bucket base URL (no trailing slash)
+ * @param {string} [prefix] - Optional key prefix filter (e.g. "FiccionSonora/")
+ * @returns {Promise<string[]>}
+ */
+export async function fetchBucketKeys(baseUrl, prefix = '') {
+  const keys = []
+  let continuationToken = ''
+  let guard = 0
+  const prefixParam = prefix ? `&prefix=${encodeURIComponent(prefix)}` : ''
+
+  while (guard < MAX_LISTING_PAGES) {
+    guard += 1
+    const tokenParam = continuationToken
+      ? `&continuation-token=${encodeURIComponent(continuationToken)}`
+      : ''
+    const response = await fetch(`${baseUrl}/?list-type=2${prefixParam}${tokenParam}`)
+    if (!response.ok) {
+      throw new Error(
+        `R2 devolvió ${response.status} al leer bucket listing: ${baseUrl}/?list-type=2`,
+      )
+    }
+    const xml = await response.text()
+
+    const keyMatches = xml.matchAll(/<Key>([^<]+)<\/Key>/g)
+    for (const match of keyMatches) {
+      const key = decodeXmlEntities(match[1]).trim()
+      if (key) keys.push(key)
+    }
+
+    const nextToken =
+      xml.match(/<NextContinuationToken>([^<]+)<\/NextContinuationToken>/)?.[1] ?? ''
+    if (!nextToken) break
+    continuationToken = decodeXmlEntities(nextToken)
+  }
+
+  return keys
+}
+
+/**
+ * Create a fuzzy key resolver that normalises accents and case when looking up
+ * bucket keys.
+ *
+ * @param {string[]} keys - Full list of bucket keys
+ * @returns {{ resolveKey: (requestedKey: string) => string | null }}
+ */
+export function createKeyResolver(keys = []) {
+  const keySet = new Set(keys)
+  const normalizedKeyMap = new Map()
+  const normalizedFolderMap = new Map()
+
+  for (const key of keys) {
+    const normalizedKey = normalizeLookupValue(key)
+    if (!normalizedKeyMap.has(normalizedKey)) {
+      normalizedKeyMap.set(normalizedKey, key)
+    }
+
+    const [folderName] = key.split('/')
+    if (folderName) {
+      const normalizedFolder = normalizeLookupValue(folderName)
+      if (!normalizedFolderMap.has(normalizedFolder)) {
+        normalizedFolderMap.set(normalizedFolder, folderName)
+      }
+    }
+  }
+
+  function resolveKey(requestedKey) {
+    const sanitized = requestedKey.replace(/^\/+/, '')
+    if (keySet.has(sanitized)) return sanitized
+
+    const normalized = normalizeLookupValue(sanitized)
+    if (normalizedKeyMap.has(normalized)) return normalizedKeyMap.get(normalized)
+
+    const [requestedFolder, ...rest] = sanitized.split('/')
+    if (rest.length === 0) return null
+
+    const resolvedFolder = normalizedFolderMap.get(normalizeLookupValue(requestedFolder))
+    if (!resolvedFolder) return null
+
+    const sameFileCandidate = `${resolvedFolder}/${rest.join('/')}`
+    if (keySet.has(sameFileCandidate)) return sameFileCandidate
+
+    const normalizedCandidate = normalizeLookupValue(sameFileCandidate)
+    if (normalizedKeyMap.has(normalizedCandidate)) {
+      return normalizedKeyMap.get(normalizedCandidate)
+    }
+
+    return null
+  }
+
+  return { resolveKey }
+}
+
+/**
+ * Fetch and parse a JSON object from R2.
+ *
+ * @param {string} url   - Full public URL
+ * @param {string} label - Human-readable label for error messages
+ * @returns {Promise<object>}
+ */
+export async function fetchJson(url, label) {
+  const response = await fetch(url)
+  if (!response.ok) {
+    throw new Error(`R2 devolvió ${response.status} al leer ${label}: ${url}`)
+  }
+
+  try {
+    return await response.json()
+  } catch {
+    throw new Error(`No se pudo parsear JSON en ${label}: ${url}`)
+  }
+}
