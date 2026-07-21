@@ -36,8 +36,9 @@ function getBaseName(filename) {
  *
  * Detection priority:
  *   1. Audio files (.m4a etc.) directly in the folder → contentType 'audio'
- *   2. Subfolders containing .m3u8 + .ts files        → contentType 'hls'
- *   3. Neither found                                   → contentType 'unknown'
+ *   2. HLS files (.m3u8 + .ts) directly in the folder → contentType 'hls'
+ *   3. Subfolders containing .m3u8 + .ts files        → contentType 'hls'
+ *   4. Neither found                                   → contentType 'unknown'
  *
  * @param {string}   baseUrl      - Public bucket base URL (no trailing slash)
  * @param {string[]} keys         - All keys under the folder prefix
@@ -62,6 +63,23 @@ function classifyFolder(baseUrl, keys, folderPrefix) {
       }
     })
     return { contentType: 'audio', items }
+  }
+
+  const rootManifest = directFiles.find((filename) => filename.endsWith('.m3u8'))
+  const hasRootSegments = directFiles.some((filename) => filename.endsWith('.ts'))
+
+  if (rootManifest && hasRootSegments) {
+    return {
+      contentType: 'hls',
+      items: [
+        {
+          id: folderPrefix.slice(0, -1),
+          itemType: 'hls',
+          hlsFolder: folderPrefix.slice(0, -1),
+          hlsManifestUrl: toObjectUrl(baseUrl, `${folderPrefix}${rootManifest}`),
+        },
+      ],
+    }
   }
 
   // ── HLS video detection ────────────────────────────────────────────────────
