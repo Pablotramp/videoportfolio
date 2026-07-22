@@ -69,6 +69,38 @@ async function resolveSectionImageKey(baseUrl, section, resolver, hasListing) {
   return fallbackKey
 }
 
+/**
+ * Resolve section cover images using the sectionImages map from _manifest.json.
+ *
+ * @param {string} baseUrl
+ * @param {object[]} sections  - Raw sections array from _estructura.json
+ * @param {Record<string, string>} sectionImages - Map of img filename → bucket key
+ * @returns {Record<string, string>}  Map of img filename → full public URL
+ */
+function resolveImagesFromManifest(baseUrl, sections, sectionImages) {
+  const result = {}
+
+  for (const section of sections) {
+    if (typeof section.img !== 'string' || !section.img.trim()) continue
+    const imgName = section.img.trim()
+    const resolvedKey = sectionImages[imgName]
+
+    if (resolvedKey) {
+      console.info(
+        `[r2:manifest:image] "${section.section ?? imgName}" — portada "${imgName}" resuelta como "${resolvedKey}" (manifest).`,
+      )
+      result[imgName] = toObjectUrl(baseUrl, resolvedKey)
+    } else {
+      console.warn(
+        `[r2:manifest:image] "${section.section ?? imgName}" — portada "${imgName}" no encontrada en manifest.sectionImages. Usando convención.`,
+      )
+      result[imgName] = toObjectUrl(baseUrl, imgName)
+    }
+  }
+
+  return result
+}
+
 function createR2ConfigError() {
   return new Error(
     'R2 source requiere VITE_R2_PUBLIC_URL con la URL pública del bucket (ej: https://pub-XXXX.r2.dev).',
@@ -79,7 +111,37 @@ function createR2ConfigError() {
  * Cloudflare R2 portfolio source.
  *
  * Loads _estructura.json as the single source of truth for site structure.
- * Resolves section cover images (img field) against the bucket.
+ * When _manifest.json is present it is used to:
+ *   1. Resolve section cover images without querying the bucket listing (?list-type=2).
+ *   2. Provide pre-classified section content items to useSection so that no
+ *      per-section bucket listing is needed at runtime.
+ *
+ * _manifest.json contract:
+ * ─────────────────────────────────────────────────────────────────────────────
+ * {
+ *   "version": 1,
+ *   "sectionImages": {
+ *     "<img-filename-from-estructura>": "<resolved-bucket-key>"
+ *   },
+ *   "sections": {
+ *     "<entryName>": {
+ *       "contentType": "hls" | "audio" | "file" | "unknown",
+ *       "items": [
+ *         // HLS stream
+ *         { "id": "...", "itemType": "hls", "hlsFolder": "...", "hlsManifestKey": "folder/master.m3u8" },
+ *         // Audio track
+ *         { "id": "...", "itemType": "audio", "audioKey": "folder/track.m4a" },
+ *         // File / document
+ *         { "id": "...", "itemType": "file", "fileRef": "..." }
+ *       ]
+ *     }
+ *   }
+ * }
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
+ * If _manifest.json is absent or invalid the source falls back to the legacy
+ * bucket-listing approach (?list-type=2) so that existing deployments continue
+ * to work without any migration.
  */
 export function createR2PortfolioSource(config = {}) {
   return {
@@ -97,26 +159,45 @@ export function createR2PortfolioSource(config = {}) {
       const estructuraJson = await fetchJson(`${baseUrl}/_estructura.json`, '_estructura.json')
 
       const sections = Array.isArray(estructuraJson.sections) ? estructuraJson.sections : []
-      let bucketKeys = []
 
+      // ── Try _manifest.json first ────────────────────────────────────────────
+      let manifest = null
       try {
-        bucketKeys = await fetchBucketKeys(baseUrl)
-      } catch (error) {
-        console.warn(
-          '[r2:listing:warning] No se pudo listar el bucket. Se usará resolución directa por nombre.',
-          error,
+        manifest = await fetchJson(`${baseUrl}/_manifest.json`, '_manifest.json')
+        console.info('[r2:manifest] _manifest.json cargado correctamente.')
+      } catch {
+        console.info(
+          '[r2:manifest] _manifest.json no disponible. Usando descubrimiento por listado de bucket (?list-type=2).',
         )
       }
 
-      const resolver = createKeyResolver(bucketKeys)
-      const hasListing = bucketKeys.length > 0
+      let sectionImagesByName = {}
 
-      const sectionImagesByName = {}
-      for (const section of sections) {
-        if (typeof section.img === 'string' && section.img.trim()) {
-          const imgName = section.img.trim()
-          const resolvedImageKey = await resolveSectionImageKey(baseUrl, section, resolver, hasListing)
-          sectionImagesByName[imgName] = toObjectUrl(baseUrl, resolvedImageKey)
+      if (manifest && manifest.sectionImages && typeof manifest.sectionImages === 'object') {
+        // ── Manifest path: resolve images without bucket listing ──────────────
+        sectionImagesByName = resolveImagesFromManifest(baseUrl, sections, manifest.sectionImages)
+      } else {
+        // ── Legacy path: bucket listing (?list-type=2) ────────────────────────
+        let bucketKeys = []
+
+        try {
+          bucketKeys = await fetchBucketKeys(baseUrl)
+        } catch (error) {
+          console.warn(
+            '[r2:listing:warning] No se pudo listar el bucket. Se usará resolución directa por nombre.',
+            error,
+          )
+        }
+
+        const resolver = createKeyResolver(bucketKeys)
+        const hasListing = bucketKeys.length > 0
+
+        for (const section of sections) {
+          if (typeof section.img === 'string' && section.img.trim()) {
+            const imgName = section.img.trim()
+            const resolvedImageKey = await resolveSectionImageKey(baseUrl, section, resolver, hasListing)
+            sectionImagesByName[imgName] = toObjectUrl(baseUrl, resolvedImageKey)
+          }
         }
       }
 
@@ -125,6 +206,10 @@ export function createR2PortfolioSource(config = {}) {
         sectionImagesByName,
         footer: null,
         r2BaseUrl: baseUrl,
+        manifestSections:
+          manifest && manifest.sections && typeof manifest.sections === 'object'
+            ? manifest.sections
+            : null,
       }
     },
   }
