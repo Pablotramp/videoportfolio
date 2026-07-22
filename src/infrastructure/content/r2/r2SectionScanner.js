@@ -192,25 +192,31 @@ function classifyFolder(baseUrl, keys, folderPrefix) {
  *   - Audio files (.m4a etc.) directly in the folder
  *   - HLS sub-folders (each subfolder = one video stream)
  *
- * @param {string} baseUrl    - Public R2 base URL (no trailing slash)
- * @param {string} folderName - Section entryName (= folder name in R2)
+ * @param {string}   baseUrl       - Public R2 base URL (no trailing slash)
+ * @param {string}   folderName    - Section entryName (= folder name in R2)
+ * @param {string[]|null} [preloadedKeys] - Keys already known (e.g. from manifest.files).
+ *   When provided the bucket listing fetch is skipped entirely.
  * @returns {Promise<{ contentType: 'audio'|'hls'|'unknown', items: Array }>}
  */
-export async function scanFolderSection(baseUrl, folderName) {
+export async function scanFolderSection(baseUrl, folderName, preloadedKeys = null) {
   const folderPrefix = `${folderName.trim()}/`
   let keys
 
-  try {
-    keys = await fetchBucketKeys(baseUrl, folderPrefix)
-  } catch (error) {
-    console.warn(
-      `[r2:scanner:folder] No se pudo listar la carpeta "${folderName}".`,
-      error,
-    )
-    return {
-      contentType: 'unknown',
-      items: [],
-      diagnostics: buildScanDiagnostics(baseUrl, folderPrefix, [], error),
+  if (Array.isArray(preloadedKeys)) {
+    keys = preloadedKeys
+  } else {
+    try {
+      keys = await fetchBucketKeys(baseUrl, folderPrefix)
+    } catch (error) {
+      console.warn(
+        `[r2:scanner:folder] No se pudo listar la carpeta "${folderName}".`,
+        error,
+      )
+      return {
+        contentType: 'unknown',
+        items: [],
+        diagnostics: buildScanDiagnostics(baseUrl, folderPrefix, [], error),
+      }
     }
   }
 
@@ -228,25 +234,31 @@ export async function scanFolderSection(baseUrl, folderName) {
  * The entryName maps to a folder in R2 that contains one .m3u8 manifest
  * and its .ts segments.
  *
- * @param {string} baseUrl    - Public R2 base URL (no trailing slash)
- * @param {string} videoName  - Section entryName (= HLS folder name in R2)
+ * @param {string}        baseUrl       - Public R2 base URL (no trailing slash)
+ * @param {string}        videoName     - Section entryName (= HLS folder name in R2)
+ * @param {string[]|null} [preloadedKeys] - Keys already known (e.g. from manifest.files).
+ *   When provided the bucket listing fetch is skipped entirely.
  * @returns {Promise<{ contentType: 'hls', items: Array }>}
  */
-export async function scanVideoSection(baseUrl, videoName) {
+export async function scanVideoSection(baseUrl, videoName, preloadedKeys = null) {
   const folderPrefix = `${videoName.trim()}/`
   let keys
 
-  try {
-    keys = await fetchBucketKeys(baseUrl, folderPrefix)
-  } catch (error) {
-    console.warn(
-      `[r2:scanner:video] No se pudo listar la carpeta de vídeo "${videoName}".`,
-      error,
-    )
-    return {
-      contentType: 'hls',
-      items: [],
-      diagnostics: buildScanDiagnostics(baseUrl, folderPrefix, [], error),
+  if (Array.isArray(preloadedKeys)) {
+    keys = preloadedKeys
+  } else {
+    try {
+      keys = await fetchBucketKeys(baseUrl, folderPrefix)
+    } catch (error) {
+      console.warn(
+        `[r2:scanner:video] No se pudo listar la carpeta de vídeo "${videoName}".`,
+        error,
+      )
+      return {
+        contentType: 'hls',
+        items: [],
+        diagnostics: buildScanDiagnostics(baseUrl, folderPrefix, [], error),
+      }
     }
   }
 

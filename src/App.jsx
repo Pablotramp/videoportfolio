@@ -25,7 +25,7 @@ function App() {
       <Route path="/" element={<Home sections={portfolio.sections} />} />
       <Route
         path="/seccion/:slug"
-        element={<SeccionPage sections={portfolio.sections} r2BaseUrl={portfolio.r2BaseUrl} sectionManifest={portfolio.sectionManifest} />}
+        element={<SeccionPage sections={portfolio.sections} r2BaseUrl={portfolio.r2BaseUrl} sectionManifest={portfolio.sectionManifest} manifestFiles={portfolio.manifestFiles} />}
       />
     </Routes>
   )

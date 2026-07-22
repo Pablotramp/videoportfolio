@@ -9,6 +9,7 @@ export function normalizePortfolioContent(rawContent = {}) {
     estructuraText = null,
     r2BaseUrl = null,
     manifestSections = null,
+    manifestFiles = null,
   } = rawContent
 
   const parsedJson = parseEstructuraJson(estructuraJson)
@@ -53,5 +54,6 @@ export function normalizePortfolioContent(rawContent = {}) {
     siteTitle,
     r2BaseUrl,
     sectionManifest: manifestSections,
+    manifestFiles,
   }
 }
