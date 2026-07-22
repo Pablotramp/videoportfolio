@@ -36,7 +36,8 @@ function HlsPlayerPlaceholder({ itemId, hlsManifestUrl, hlsFrameUrl, inline = fa
         tabIndex={0}
         aria-label={`Reproducir: ${title}`}
         onKeyDown={(event) => {
-          if (event.key === 'Enter' || event.key === ' ') {
+          const isSpace = event.key === ' ' || event.code === 'Space'
+          if (event.key === 'Enter' || isSpace) {
             event.preventDefault()
             handleOpen()
           }
