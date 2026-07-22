@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react'
-import PropTypes from 'prop-types'
 import Hls from 'hls.js'
 
 /**
@@ -46,6 +45,3 @@ export default function HlsPlayer({ src }) {
   )
 }
 
-HlsPlayer.propTypes = {
-  src: PropTypes.string.isRequired,
-}

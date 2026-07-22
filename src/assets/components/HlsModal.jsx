@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react'
-import PropTypes from 'prop-types'
 import HlsPlayer from './HlsPlayer.jsx'
 
 /**
@@ -85,9 +84,3 @@ export default function HlsModal({ isOpen, onClose, src, titulo }) {
   )
 }
 
-HlsModal.propTypes = {
-  isOpen: PropTypes.bool.isRequired,
-  onClose: PropTypes.func.isRequired,
-  src: PropTypes.string.isRequired,
-  titulo: PropTypes.string,
-}
