@@ -20,7 +20,7 @@ import { fetchBucketKeys, toBucketListingUrl, toObjectUrl } from './r2Utils.js'
 
 const AUDIO_EXTENSIONS = new Set(['m4a', 'mp3', 'aac', 'ogg', 'opus', 'flac', 'wav'])
 const HLS_SEGMENT_EXTENSIONS = new Set(['ts', 'm4s'])
-const IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'avif'])
+const IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'avif', 'svg'])
 const JSON_EXTENSION = 'json'
 
 function getExtension(filename) {
