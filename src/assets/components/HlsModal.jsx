@@ -49,7 +49,7 @@ export default function HlsModal({ isOpen, onClose, src, titulo }) {
       aria-modal="true"
       aria-label={titulo || 'Reproductor de vídeo'}
     >
-      <div className="relative w-full max-w-4xl rounded-xl bg-gray-900 shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-4xl overflow-hidden rounded-xl bg-gray-900 shadow-2xl">
         {/* Barra superior */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
           {titulo && (
