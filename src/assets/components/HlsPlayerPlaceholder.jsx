@@ -31,7 +31,8 @@ function HlsPlayerPlaceholder({
   r2BaseUrl,
 }) {
   const visibleFiles = Array.isArray(hlsFiles) ? hlsFiles.slice(0, 8) : []
-  const hiddenFilesCount = Array.isArray(hlsFiles) ? Math.max(hlsFiles.length - visibleFiles.length, 0) : 0
+  const hlsFileCount = Array.isArray(hlsFiles) ? hlsFiles.length : 0
+  const hiddenFilesCount = Math.max(hlsFileCount - visibleFiles.length, 0)
 
   return (
     <div
@@ -64,7 +65,7 @@ function HlsPlayerPlaceholder({
           <dd className="m-0 truncate font-mono text-zinc-600">{hlsFrameUrl ?? '—'}</dd>
         </div>
         <div className="grid gap-1">
-          <dt className="font-mono text-zinc-400">hlsFiles ({Array.isArray(hlsFiles) ? hlsFiles.length : 0})</dt>
+          <dt className="font-mono text-zinc-400">hlsFiles ({hlsFileCount})</dt>
           <dd className="m-0 font-mono text-zinc-600">
             {visibleFiles.length === 0 ? (
               '—'

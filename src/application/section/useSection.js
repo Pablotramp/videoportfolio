@@ -36,9 +36,11 @@ function buildItemsFromManifest(manifestSection, r2BaseUrl) {
       const hlsFiles = Array.isArray(item.hlsFiles)
         ? item.hlsFiles.filter((key) => typeof key === 'string' && key.trim())
         : []
+      const legacyFrameKey =
+        typeof item.frameKey === 'string' && item.frameKey.trim() ? item.frameKey.trim() : null
       const hlsFrameKey =
         (typeof item.hlsFrameKey === 'string' && item.hlsFrameKey.trim()) ||
-        (typeof item.frameKey === 'string' && item.frameKey.trim()) ||
+        legacyFrameKey ||
         null
 
       return {

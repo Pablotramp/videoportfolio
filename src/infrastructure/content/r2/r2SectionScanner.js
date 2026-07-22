@@ -95,34 +95,34 @@ function pickPreferredM3u8(keys) {
     if (!fallback) fallback = key
   }
 
-  function isImageKey(key) {
-    return IMAGE_EXTENSIONS.has(getExtension(key))
-  }
-
-  function getFinalPathSegment(path) {
-    const segments = path.split('/')
-    return segments[segments.length - 1] ?? path
-  }
-
-  function getStreamMetadata(baseUrl, streamKeys, hlsManifestKey) {
-    const sanitizedManifestKey = typeof hlsManifestKey === 'string' ? hlsManifestKey : ''
-    const hlsFiles = streamKeys.filter((key) => key && key !== sanitizedManifestKey)
-    const frameCandidate =
-      hlsFiles.find((key) => {
-        if (!isImageKey(key)) return false
-        return getBaseName(getFinalPathSegment(key)).toLowerCase() === 'frame'
-      }) ?? null
-
-    return {
-      hlsManifestKey: sanitizedManifestKey,
-      hlsFiles,
-      hlsFileUrls: hlsFiles.map((key) => toObjectUrl(baseUrl, key)),
-      hlsFrameKey: frameCandidate,
-      hlsFrameUrl: frameCandidate ? toObjectUrl(baseUrl, frameCandidate) : null,
-    }
-  }
-
   return fallback
+}
+
+function isImageKey(key) {
+  return IMAGE_EXTENSIONS.has(getExtension(key))
+}
+
+function getFinalPathSegment(path) {
+  const segments = path.split('/')
+  return segments[segments.length - 1] ?? path
+}
+
+function getStreamMetadata(baseUrl, streamKeys, hlsManifestKey) {
+  const sanitizedManifestKey = typeof hlsManifestKey === 'string' ? hlsManifestKey : ''
+  const hlsFiles = streamKeys.filter((key) => key && key !== sanitizedManifestKey)
+  const frameCandidate =
+    hlsFiles.find(
+      (key) =>
+        isImageKey(key) && getBaseName(getFinalPathSegment(key)).toLowerCase() === 'frame',
+    ) ?? null
+
+  return {
+    hlsManifestKey: sanitizedManifestKey,
+    hlsFiles,
+    hlsFileUrls: hlsFiles.map((key) => toObjectUrl(baseUrl, key)),
+    hlsFrameKey: frameCandidate,
+    hlsFrameUrl: frameCandidate ? toObjectUrl(baseUrl, frameCandidate) : null,
+  }
 }
 
 /**
