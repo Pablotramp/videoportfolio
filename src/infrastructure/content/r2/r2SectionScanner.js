@@ -107,11 +107,17 @@ function isJsonKey(key) {
   return getExtension(key) === JSON_EXTENSION
 }
 
-function pickMetadataKey(keys) {
+export function pickPreferredMetadataKey(keys = []) {
   let fallback = null
   for (const key of keys) {
-    if (!isJsonKey(key)) continue
-    if (getFinalPathSegment(key).toLowerCase() === 'metadata.json') return key
+    if (typeof key !== 'string' || !isJsonKey(key)) continue
+    const normalizedKey = key.toLowerCase()
+    if (
+      normalizedKey.endsWith('/metadata.json') ||
+      getFinalPathSegment(normalizedKey) === 'metadata.json'
+    ) {
+      return key
+    }
     if (!fallback) fallback = key
   }
   return fallback
@@ -130,7 +136,7 @@ function getStreamMetadata(baseUrl, streamKeys, hlsManifestKey) {
       (key) =>
         isImageKey(key) && getBaseName(getFinalPathSegment(key)).toLowerCase() === 'frame',
     ) ?? null
-  const metadataCandidate = pickMetadataKey(hlsFiles)
+  const metadataCandidate = pickPreferredMetadataKey(hlsFiles)
 
   return {
     hlsManifestKey: sanitizedManifestKey,

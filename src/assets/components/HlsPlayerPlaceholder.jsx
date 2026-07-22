@@ -85,6 +85,7 @@ function HlsPlayerPlaceholder({
   if (inline) {
     return (
       <div className="w-full">
+        <p className="sr-only">Vídeo en reproducción automática en silencio.</p>
         <HlsPlayer
           src={hlsManifestUrl}
           muted

@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react'
-import { scanFolderSection, scanVideoSection } from '../../infrastructure/content/r2/r2SectionScanner.js'
+import {
+  pickPreferredMetadataKey,
+  scanFolderSection,
+  scanVideoSection,
+} from '../../infrastructure/content/r2/r2SectionScanner.js'
 import { toObjectUrl } from '../../infrastructure/content/r2/r2Utils.js'
 
 const DEFAULT_STATE = {
@@ -47,16 +51,7 @@ function buildItemsFromManifest(manifestSection, r2BaseUrl) {
         (typeof item.metadataKey === 'string' && item.metadataKey.trim()) ||
         (typeof item.jsonKey === 'string' && item.jsonKey.trim()) ||
         null
-      let metadataFromFiles = null
-      for (const key of hlsFiles) {
-        const normalizedKey = key.toLowerCase()
-        if (!normalizedKey.endsWith('.json')) continue
-        if (normalizedKey.endsWith('/metadata.json')) {
-          metadataFromFiles = key
-          break
-        }
-        if (!metadataFromFiles) metadataFromFiles = key
-      }
+      const metadataFromFiles = pickPreferredMetadataKey(hlsFiles)
       const hlsMetadataKey = metadataFromKnownFields || metadataFromFiles
 
       return {
