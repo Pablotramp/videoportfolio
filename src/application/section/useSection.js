@@ -58,8 +58,8 @@ function buildItemsFromManifest(manifestSection, r2BaseUrl) {
  * @returns {string[]|null} Matching keys, or null when manifest data is absent
  */
 function filterManifestKeys(manifestFiles, entryName) {
-  if (!Array.isArray(manifestFiles) || !entryName) return null
-  const prefix = `${entryName}/`
+  if (!Array.isArray(manifestFiles) || !entryName || !entryName.trim()) return null
+  const prefix = `${entryName.trim()}/`
   const filtered = manifestFiles.filter((k) => typeof k === 'string' && k.startsWith(prefix))
   return filtered.length > 0 ? filtered : null
 }
@@ -138,7 +138,7 @@ export function useSection(section, r2BaseUrl, sectionManifest, manifestFiles) {
       // If manifest.files is available, filter by prefix to avoid any listing call.
       const preloadedKeys =
         section.type !== 'file'
-          ? filterManifestKeys(manifestFiles, section.entryName)
+          ? filterManifestKeys(manifestFiles, section?.entryName)
           : null
 
       try {
