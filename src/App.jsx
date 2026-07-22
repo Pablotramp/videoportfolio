@@ -34,7 +34,7 @@ function App() {
     content = (
       <section className="grid gap-4 border border-black/10 bg-white px-8 py-10" aria-busy="true" aria-live="polite">
         <p className="m-0 text-xs uppercase tracking-[0.22em] text-zinc-500">Cargando</p>
-        <h1 className="m-0 font-serif text-4xl font-semibold">Preparando portfolio…</h1>
+        <h1 className="m-0 font-serif text-4xl font-semibold">Preparando contenido…</h1>
         <p className="m-0 text-zinc-700">Estamos reuniendo el contenido desde Cloudflare R2.</p>
       </section>
     )

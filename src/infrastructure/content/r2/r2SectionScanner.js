@@ -21,6 +21,7 @@ import { fetchBucketKeys, toBucketListingUrl, toObjectUrl } from './r2Utils.js'
 const AUDIO_EXTENSIONS = new Set(['m4a', 'mp3', 'aac', 'ogg', 'opus', 'flac', 'wav'])
 const HLS_SEGMENT_EXTENSIONS = new Set(['ts', 'm4s'])
 const IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'avif'])
+const JSON_EXTENSION = 'json'
 
 function getExtension(filename) {
   const lastDot = filename.lastIndexOf('.')
@@ -102,6 +103,26 @@ function isImageKey(key) {
   return IMAGE_EXTENSIONS.has(getExtension(key))
 }
 
+function isJsonKey(key) {
+  return getExtension(key) === JSON_EXTENSION
+}
+
+export function pickPreferredMetadataKey(keys = []) {
+  let fallback = null
+  for (const key of keys) {
+    if (typeof key !== 'string' || !isJsonKey(key)) continue
+    const normalizedKey = key.toLowerCase()
+    if (
+      normalizedKey.endsWith('/metadata.json') ||
+      getFinalPathSegment(normalizedKey) === 'metadata.json'
+    ) {
+      return key
+    }
+    if (!fallback) fallback = key
+  }
+  return fallback
+}
+
 function getFinalPathSegment(path) {
   const segments = path.split('/')
   return segments[segments.length - 1] ?? path
@@ -115,6 +136,7 @@ function getStreamMetadata(baseUrl, streamKeys, hlsManifestKey) {
       (key) =>
         isImageKey(key) && getBaseName(getFinalPathSegment(key)).toLowerCase() === 'frame',
     ) ?? null
+  const metadataCandidate = pickPreferredMetadataKey(hlsFiles)
 
   return {
     hlsManifestKey: sanitizedManifestKey,
@@ -122,6 +144,8 @@ function getStreamMetadata(baseUrl, streamKeys, hlsManifestKey) {
     hlsFileUrls: hlsFiles.map((key) => toObjectUrl(baseUrl, key)),
     hlsFrameKey: frameCandidate,
     hlsFrameUrl: frameCandidate ? toObjectUrl(baseUrl, frameCandidate) : null,
+    hlsMetadataKey: metadataCandidate,
+    hlsMetadataUrl: metadataCandidate ? toObjectUrl(baseUrl, metadataCandidate) : null,
   }
 }
 

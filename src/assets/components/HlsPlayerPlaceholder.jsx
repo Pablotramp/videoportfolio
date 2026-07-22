@@ -1,9 +1,25 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import HlsModal from './HlsModal.jsx'
 import HlsPlayer from './HlsPlayer.jsx'
 
-function HlsPlayerPlaceholder({ itemId, hlsManifestUrl, hlsFrameUrl, inline = false }) {
+const INLINE_PLAYER_RESERVED_HEIGHT_PX = 190
+const DEFAULT_FOOTER_HEIGHT_PX = 41
+const INLINE_PLAYER_MAX_HEIGHT = `calc(100dvh - ${INLINE_PLAYER_RESERVED_HEIGHT_PX}px - var(--footer-h, ${DEFAULT_FOOTER_HEIGHT_PX}px))`
+
+function getTrimmedString(value) {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+function HlsPlayerPlaceholder({
+  itemId,
+  hlsManifestUrl,
+  hlsFrameUrl,
+  hlsMetadataUrl,
+  itemTitle = null,
+  inline = false,
+}) {
   const [isOpen, setIsOpen] = useState(false)
+  const [metadataTitle, setMetadataTitle] = useState(null)
 
   const handleOpen = useCallback(() => setIsOpen(true), [])
   const handleClose = useCallback(() => setIsOpen(false), [])
@@ -18,7 +34,45 @@ function HlsPlayerPlaceholder({ itemId, hlsManifestUrl, hlsFrameUrl, inline = fa
     [handleOpen],
   )
 
-  const title = itemId ?? 'Video'
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadMetadataTitle() {
+      if (!hlsMetadataUrl) {
+        setMetadataTitle(null)
+        return
+      }
+
+      try {
+        const response = await fetch(hlsMetadataUrl)
+        if (!response.ok) {
+          throw new Error(
+            `Metadata fetch failed (${response.status} ${response.statusText})`,
+          )
+        }
+        const json = await response.json()
+        const resolvedTitle = getTrimmedString(json?.title) || null
+        if (!cancelled) setMetadataTitle(resolvedTitle)
+      } catch (error) {
+        console.warn('[hls:metadata] No se pudo cargar la metadata de título.', error)
+        if (!cancelled) setMetadataTitle(null)
+      }
+    }
+
+    loadMetadataTitle()
+
+    return () => {
+      cancelled = true
+    }
+  }, [hlsMetadataUrl])
+
+  const title = useMemo(() => {
+    const trimmedItemTitle = getTrimmedString(itemTitle)
+    if (trimmedItemTitle) return trimmedItemTitle
+    const trimmedMetadataTitle = getTrimmedString(metadataTitle)
+    if (trimmedMetadataTitle) return trimmedMetadataTitle
+    return null
+  }, [itemTitle, metadataTitle])
 
   if (!hlsManifestUrl) {
     return (
@@ -30,9 +84,17 @@ function HlsPlayerPlaceholder({ itemId, hlsManifestUrl, hlsFrameUrl, inline = fa
 
   if (inline) {
     return (
-      <div className="grid gap-3 rounded border border-black/20 bg-black/20 p-4">
-        <p className="m-0 text-sm font-medium">{title}</p>
-        <HlsPlayer src={hlsManifestUrl} />
+      <div className="w-full">
+        <p className="sr-only">Vídeo en reproducción automática en silencio.</p>
+        <HlsPlayer
+          src={hlsManifestUrl}
+          muted
+          autoPlay
+          className="w-full bg-black"
+          style={{
+            maxHeight: INLINE_PLAYER_MAX_HEIGHT,
+          }}
+        />
       </div>
     )
   }
@@ -44,14 +106,14 @@ function HlsPlayerPlaceholder({ itemId, hlsManifestUrl, hlsFrameUrl, inline = fa
         className="group relative flex cursor-pointer flex-col overflow-hidden rounded-xl bg-gray-800 shadow-lg transition-transform duration-200 hover:scale-[1.02] hover:shadow-xl"
         role="button"
         tabIndex={0}
-        aria-label={`Reproducir: ${title}`}
+        aria-label={title ? `Reproducir: ${title}` : `Reproducir: ${itemId ?? 'video'}`}
         onKeyDown={handleKeyDown}
       >
         <div className="relative aspect-video w-full overflow-hidden bg-gray-900">
           {hlsFrameUrl ? (
             <img
               src={hlsFrameUrl}
-              alt={title}
+              alt={title ?? itemId ?? 'Video'}
               className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
               loading="lazy"
             />
@@ -72,12 +134,21 @@ function HlsPlayerPlaceholder({ itemId, hlsManifestUrl, hlsFrameUrl, inline = fa
           </div>
         </div>
 
-        <div className="p-4">
-          <h3 className="line-clamp-2 text-base font-semibold leading-snug text-white">{title}</h3>
-        </div>
+        {title && (
+          <div className="p-4">
+            <h3 className="line-clamp-2 text-base font-semibold leading-snug text-white">{title}</h3>
+          </div>
+        )}
       </article>
 
-      <HlsModal isOpen={isOpen} onClose={handleClose} src={hlsManifestUrl} titulo={title} />
+      <HlsModal
+        isOpen={isOpen}
+        onClose={handleClose}
+        src={hlsManifestUrl}
+        titulo={title ?? undefined}
+        muted={false}
+        autoPlay
+      />
     </>
   )
 }

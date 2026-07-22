@@ -12,7 +12,14 @@ import HlsPlayer from './HlsPlayer.jsx'
  * @param {string}   src      - URL del manifiesto master.m3u8
  * @param {string}   [titulo] - Título opcional del vídeo
  */
-export default function HlsModal({ isOpen, onClose, src, titulo }) {
+export default function HlsModal({
+  isOpen,
+  onClose,
+  src,
+  titulo,
+  muted = false,
+  autoPlay = true,
+}) {
   const overlayRef = useRef(null)
 
   // Cerrar con tecla Escape
@@ -77,10 +84,9 @@ export default function HlsModal({ isOpen, onClose, src, titulo }) {
 
         {/* Reproductor */}
         <div className="p-4">
-          <HlsPlayer src={src} />
+          <HlsPlayer src={src} muted={muted} autoPlay={autoPlay} />
         </div>
       </div>
     </div>
   )
 }
-

@@ -41,7 +41,7 @@ function MainLayout({ footer, sections, siteTitle, children, fullBleed = false }
       <Header sections={sections} siteTitle={siteTitle} />
       <main
         className={fullBleed ? 'w-full' : 'mx-auto w-full max-w-[1248px] px-6 pt-10'}
-        style={!fullBleed ? { paddingBottom: mainPaddingBottom } : undefined}
+        style={{ paddingBottom: mainPaddingBottom }}
       >
         {children}
       </main>
