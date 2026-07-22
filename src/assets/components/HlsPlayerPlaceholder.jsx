@@ -3,6 +3,7 @@ import HlsModal from './HlsModal.jsx'
 import HlsPlayer from './HlsPlayer.jsx'
 
 const INLINE_PLAYER_RESERVED_HEIGHT_PX = 190
+const DEFAULT_FOOTER_HEIGHT_PX = 41
 
 function HlsPlayerPlaceholder({
   itemId,
@@ -41,14 +42,15 @@ function HlsPlayerPlaceholder({
         const response = await fetch(hlsMetadataUrl)
         if (!response.ok) {
           throw new Error(
-            `Metadata fetch failed (${response.status} ${response.statusText}) at ${hlsMetadataUrl}`,
+            `Metadata fetch failed (${response.status} ${response.statusText})`,
           )
         }
         const json = await response.json()
         const resolvedTitle =
           typeof json?.title === 'string' && json.title.trim() ? json.title.trim() : null
         if (!cancelled) setMetadataTitle(resolvedTitle)
-      } catch {
+      } catch (error) {
+        console.warn('[hls:metadata] No se pudo cargar la metadata de título.', error)
         if (!cancelled) setMetadataTitle(null)
       }
     }
@@ -85,7 +87,7 @@ function HlsPlayerPlaceholder({
           autoPlay
           className="w-full bg-black"
           style={{
-            maxHeight: `calc(100dvh - ${INLINE_PLAYER_RESERVED_HEIGHT_PX}px - var(--footer-h, 41px))`,
+            maxHeight: `calc(100dvh - ${INLINE_PLAYER_RESERVED_HEIGHT_PX}px - var(--footer-h, ${DEFAULT_FOOTER_HEIGHT_PX}px))`,
           }}
         />
       </div>

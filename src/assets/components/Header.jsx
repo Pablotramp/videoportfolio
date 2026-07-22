@@ -53,6 +53,7 @@ function Header({ sections = [], siteTitle = null }) {
               className="h-4 w-4"
               aria-hidden="true"
             >
+              <title>Inicio</title>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 10.5L12 3l9 7.5" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 9.75V21h13.5V9.75" />
             </svg>
