@@ -94,10 +94,6 @@ function SeccionPage({ sections, r2BaseUrl, sectionManifest, manifestFiles }) {
       style={{ backgroundColor: sectionSurfaceColor }}
     >
       <div className="mx-auto grid w-full max-w-[1248px] gap-6 px-6 py-8 md:py-10">
-        <h1 className="m-0 font-serif text-4xl font-semibold tracking-tight md:text-5xl">
-          {section.name}
-        </h1>
-
         {loading && (
           <p className="text-sm uppercase tracking-[0.18em] opacity-60">
             Escaneando contenido…
@@ -123,6 +119,8 @@ function SeccionPage({ sections, r2BaseUrl, sectionManifest, manifestFiles }) {
               itemId={items[0].id}
               hlsManifestUrl={items[0].hlsManifestUrl}
               hlsFrameUrl={items[0].hlsFrameUrl}
+              hlsMetadataUrl={items[0].hlsMetadataUrl}
+              itemTitle={items[0].title ?? null}
               inline
             />
           )}
@@ -140,6 +138,8 @@ function SeccionPage({ sections, r2BaseUrl, sectionManifest, manifestFiles }) {
                   itemId={item.id}
                   hlsManifestUrl={item.hlsManifestUrl}
                   hlsFrameUrl={item.hlsFrameUrl}
+                  hlsMetadataUrl={item.hlsMetadataUrl}
+                  itemTitle={item.title ?? null}
                 />
               </li>
             ))}

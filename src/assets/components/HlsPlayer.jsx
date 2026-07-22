@@ -2,14 +2,16 @@ import { useEffect, useRef } from 'react'
 import Hls from 'hls.js'
 
 /**
- * HlsPlayer - Reproductor de vídeo HLS integrado en la pseudo-modal.
- *
- * Reproduce con `autoPlay` y `muted` para permitir reproducción automática
- * en secciones de tipo video sin bloquear por políticas del navegador.
+ * HlsPlayer - Reproductor de vídeo HLS integrado.
  *
  * @param {string} src - URL del manifiesto master.m3u8
  */
-export default function HlsPlayer({ src }) {
+export default function HlsPlayer({
+  src,
+  muted = true,
+  autoPlay = true,
+  className = 'w-full max-h-[70vh] rounded-lg bg-black',
+}) {
   const videoRef = useRef(null)
 
   useEffect(() => {
@@ -38,10 +40,9 @@ export default function HlsPlayer({ src }) {
     <video
       ref={videoRef}
       controls
-      autoPlay
-      muted
-      className="w-full max-h-[70vh] rounded-lg bg-black"
+      autoPlay={autoPlay}
+      muted={muted}
+      className={className}
     />
   )
 }
-

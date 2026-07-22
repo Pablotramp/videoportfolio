@@ -42,6 +42,16 @@ function buildItemsFromManifest(manifestSection, r2BaseUrl) {
         (typeof item.hlsFrameKey === 'string' && item.hlsFrameKey.trim()) ||
         legacyFrameKey ||
         null
+      const metadataFromKnownFields =
+        (typeof item.hlsMetadataKey === 'string' && item.hlsMetadataKey.trim()) ||
+        (typeof item.metadataKey === 'string' && item.metadataKey.trim()) ||
+        (typeof item.jsonKey === 'string' && item.jsonKey.trim()) ||
+        null
+      const metadataFromFiles =
+        hlsFiles.find((key) => key.toLowerCase().endsWith('/metadata.json')) ||
+        hlsFiles.find((key) => key.toLowerCase().endsWith('.json')) ||
+        null
+      const hlsMetadataKey = metadataFromKnownFields || metadataFromFiles
 
       return {
         ...item,
@@ -55,6 +65,10 @@ function buildItemsFromManifest(manifestSection, r2BaseUrl) {
         hlsFrameUrl: hlsFrameKey
           ? toObjectUrl(r2BaseUrl, hlsFrameKey)
           : (item.hlsFrameUrl ?? item.frameUrl ?? null),
+        hlsMetadataKey,
+        hlsMetadataUrl: hlsMetadataKey
+          ? toObjectUrl(r2BaseUrl, hlsMetadataKey)
+          : (item.hlsMetadataUrl ?? item.metadataUrl ?? null),
       }
     }
 

@@ -38,7 +38,25 @@ function Header({ sections = [], siteTitle = null }) {
         }
 
         {/* Wrapper relativo: el desplegable se posiciona desde aquí */}
-        <div className="relative ml-auto">
+        <div className="relative ml-auto flex items-center gap-2">
+          <Link
+            to="/"
+            className={`inline-flex shrink-0 items-center rounded border p-3 ${controlButtonClass}`}
+            aria-label="Volver al loop"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              className="h-4 w-4"
+              aria-hidden="true"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 10.5L12 3l9 7.5" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 9.75V21h13.5V9.75" />
+            </svg>
+          </Link>
           <button
             type="button"
             className={`inline-flex shrink-0 items-center rounded border p-3 ${controlButtonClass}`}

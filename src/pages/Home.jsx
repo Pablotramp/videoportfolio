@@ -228,7 +228,6 @@ function Home({ sections }) {
 
               <div
                 className={`section-slide__content relative z-10 ${overlayTextClass}`}
-                style={{ backgroundColor: sectionSurfaceColor }}
               >
                 <div className="section-slide__content-inner">
                   <h2 className="m-0 font-serif text-4xl font-semibold tracking-tight md:text-5xl">{section.name}</h2>
