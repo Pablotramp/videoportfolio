@@ -47,10 +47,16 @@ function buildItemsFromManifest(manifestSection, r2BaseUrl) {
         (typeof item.metadataKey === 'string' && item.metadataKey.trim()) ||
         (typeof item.jsonKey === 'string' && item.jsonKey.trim()) ||
         null
-      const metadataFromFiles =
-        hlsFiles.find((key) => key.toLowerCase().endsWith('/metadata.json')) ||
-        hlsFiles.find((key) => key.toLowerCase().endsWith('.json')) ||
-        null
+      let metadataFromFiles = null
+      for (const key of hlsFiles) {
+        const normalizedKey = key.toLowerCase()
+        if (!normalizedKey.endsWith('.json')) continue
+        if (normalizedKey.endsWith('/metadata.json')) {
+          metadataFromFiles = key
+          break
+        }
+        if (!metadataFromFiles) metadataFromFiles = key
+      }
       const hlsMetadataKey = metadataFromKnownFields || metadataFromFiles
 
       return {

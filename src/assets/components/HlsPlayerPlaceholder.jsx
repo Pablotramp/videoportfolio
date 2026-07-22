@@ -4,6 +4,11 @@ import HlsPlayer from './HlsPlayer.jsx'
 
 const INLINE_PLAYER_RESERVED_HEIGHT_PX = 190
 const DEFAULT_FOOTER_HEIGHT_PX = 41
+const INLINE_PLAYER_MAX_HEIGHT = `calc(100dvh - ${INLINE_PLAYER_RESERVED_HEIGHT_PX}px - var(--footer-h, ${DEFAULT_FOOTER_HEIGHT_PX}px))`
+
+function getTrimmedString(value) {
+  return typeof value === 'string' ? value.trim() : ''
+}
 
 function HlsPlayerPlaceholder({
   itemId,
@@ -46,8 +51,7 @@ function HlsPlayerPlaceholder({
           )
         }
         const json = await response.json()
-        const resolvedTitle =
-          typeof json?.title === 'string' && json.title.trim() ? json.title.trim() : null
+        const resolvedTitle = getTrimmedString(json?.title) || null
         if (!cancelled) setMetadataTitle(resolvedTitle)
       } catch (error) {
         console.warn('[hls:metadata] No se pudo cargar la metadata de título.', error)
@@ -63,9 +67,9 @@ function HlsPlayerPlaceholder({
   }, [hlsMetadataUrl])
 
   const title = useMemo(() => {
-    const trimmedItemTitle = typeof itemTitle === 'string' ? itemTitle.trim() : ''
+    const trimmedItemTitle = getTrimmedString(itemTitle)
     if (trimmedItemTitle) return trimmedItemTitle
-    const trimmedMetadataTitle = typeof metadataTitle === 'string' ? metadataTitle.trim() : ''
+    const trimmedMetadataTitle = getTrimmedString(metadataTitle)
     if (trimmedMetadataTitle) return trimmedMetadataTitle
     return null
   }, [itemTitle, metadataTitle])
@@ -87,7 +91,7 @@ function HlsPlayerPlaceholder({
           autoPlay
           className="w-full bg-black"
           style={{
-            maxHeight: `calc(100dvh - ${INLINE_PLAYER_RESERVED_HEIGHT_PX}px - var(--footer-h, ${DEFAULT_FOOTER_HEIGHT_PX}px))`,
+            maxHeight: INLINE_PLAYER_MAX_HEIGHT,
           }}
         />
       </div>
