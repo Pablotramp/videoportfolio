@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import HlsModal from './HlsModal.jsx'
 import HlsPlayer from './HlsPlayer.jsx'
 
+const INLINE_PLAYER_RESERVED_HEIGHT_PX = 190
+
 function HlsPlayerPlaceholder({
   itemId,
   hlsManifestUrl,
@@ -37,7 +39,7 @@ function HlsPlayerPlaceholder({
 
       try {
         const response = await fetch(hlsMetadataUrl)
-        if (!response.ok) throw new Error(`Metadata ${response.status}`)
+        if (!response.ok) throw new Error(`Metadata fetch failed: ${response.status}`)
         const json = await response.json()
         const resolvedTitle =
           typeof json?.title === 'string' && json.title.trim() ? json.title.trim() : null
@@ -75,7 +77,7 @@ function HlsPlayerPlaceholder({
           src={hlsManifestUrl}
           muted
           autoPlay
-          className="w-full max-h-[calc(100dvh-190px-var(--footer-h,41px))] bg-black"
+          className={`w-full max-h-[calc(100dvh-${INLINE_PLAYER_RESERVED_HEIGHT_PX}px-var(--footer-h,41px))] bg-black`}
         />
       </div>
     )
