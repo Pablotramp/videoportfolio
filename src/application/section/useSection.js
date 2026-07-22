@@ -29,11 +29,32 @@ function buildItemsFromManifest(manifestSection, r2BaseUrl) {
 
   return manifestSection.items.map((item) => {
     if (item.itemType === 'hls') {
+      const hlsManifestKey =
+        typeof item.hlsManifestKey === 'string' && item.hlsManifestKey.trim()
+          ? item.hlsManifestKey.trim()
+          : null
+      const hlsFiles = Array.isArray(item.hlsFiles)
+        ? item.hlsFiles.filter((key) => typeof key === 'string' && key.trim())
+        : []
+      const legacyFrameKey =
+        typeof item.frameKey === 'string' && item.frameKey.trim() ? item.frameKey.trim() : null
+      const hlsFrameKey =
+        (typeof item.hlsFrameKey === 'string' && item.hlsFrameKey.trim()) ||
+        legacyFrameKey ||
+        null
+
       return {
         ...item,
-        hlsManifestUrl: item.hlsManifestKey
-          ? toObjectUrl(r2BaseUrl, item.hlsManifestKey)
+        hlsManifestKey,
+        hlsManifestUrl: hlsManifestKey
+          ? toObjectUrl(r2BaseUrl, hlsManifestKey)
           : (item.hlsManifestUrl ?? ''),
+        hlsFiles,
+        hlsFileUrls: hlsFiles.map((key) => toObjectUrl(r2BaseUrl, key)),
+        hlsFrameKey,
+        hlsFrameUrl: hlsFrameKey
+          ? toObjectUrl(r2BaseUrl, hlsFrameKey)
+          : (item.hlsFrameUrl ?? item.frameUrl ?? null),
       }
     }
 

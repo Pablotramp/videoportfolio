@@ -121,7 +121,11 @@ function SeccionPage({ sections, r2BaseUrl, sectionManifest, manifestFiles }) {
                 <HlsPlayerPlaceholder
                   itemId={item.id}
                   hlsFolder={item.hlsFolder}
+                  hlsManifestKey={item.hlsManifestKey}
                   hlsManifestUrl={item.hlsManifestUrl}
+                  hlsFiles={item.hlsFiles}
+                  hlsFrameKey={item.hlsFrameKey}
+                  hlsFrameUrl={item.hlsFrameUrl}
                   r2BaseUrl={r2BaseUrl}
                 />
               </li>
