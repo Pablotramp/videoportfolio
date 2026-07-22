@@ -88,156 +88,164 @@ function SeccionPage({ sections, r2BaseUrl, sectionManifest, manifestFiles }) {
   const sectionSurfaceColor = section.backgroundColor ?? DEFAULT_SECTION_BACKGROUND
   const sectionTextClass = isDarkHexColor(sectionSurfaceColor) ? 'text-stone-100' : 'text-zinc-950'
 
+  // Video-type sections with HLS content use a full-height player layout
+  // (no inner padding container) to maximise visible area.
+  const isFullHeightVideo =
+    !loading && !error && section.type === 'video' && contentType === 'hls' && items.length > 0
+
   return (
     <section
       className={`section-page--fullheight w-full ${sectionTextClass}`}
       style={{ backgroundColor: sectionSurfaceColor }}
     >
-      <div className="mx-auto grid w-full max-w-[1248px] gap-6 px-6 py-8 md:py-10">
-        {loading && (
-          <p className="text-sm uppercase tracking-[0.18em] opacity-60">
-            Escaneando contenido…
-          </p>
-        )}
+      {/* Full-height inline video player — no padding wrapper */}
+      {isFullHeightVideo && (
+        <HlsPlayerPlaceholder
+          itemId={items[0].id}
+          hlsManifestUrl={items[0].hlsManifestUrl}
+          hlsFrameUrl={items[0].hlsFrameUrl}
+          hlsMetadataUrl={items[0].hlsMetadataUrl}
+          itemTitle={items[0].title ?? null}
+          inline
+        />
+      )}
 
-        {!loading && error && (
-          <p className="text-sm text-red-600">{error.message}</p>
-        )}
-
-        {/* File-type sections → FileViewerPlaceholder */}
-        {!loading && !error && section.type === 'file' && (
-          <FileViewerPlaceholder fileRef={section.entryName} r2BaseUrl={r2BaseUrl} />
-        )}
-
-        {/* HLS items in 'video' sections: render a single inline player */}
-        {!loading &&
-          !error &&
-          section.type === 'video' &&
-          contentType === 'hls' &&
-          items.length > 0 && (
-            <HlsPlayerPlaceholder
-              itemId={items[0].id}
-              hlsManifestUrl={items[0].hlsManifestUrl}
-              hlsFrameUrl={items[0].hlsFrameUrl}
-              hlsMetadataUrl={items[0].hlsMetadataUrl}
-              itemTitle={items[0].title ?? null}
-              inline
-            />
+      {/* All other states / content types use a padded container that also
+          provides clearance so content never slides under the fixed footer. */}
+      {!isFullHeightVideo && (
+        <div
+          className="mx-auto grid w-full max-w-[1248px] gap-6 px-6 pt-8 md:pt-10"
+          style={{ paddingBottom: 'calc(var(--footer-h, 41px) + 1.5rem)' }}
+        >
+          {loading && (
+            <p className="text-sm uppercase tracking-[0.18em] opacity-60">
+              Escaneando contenido…
+            </p>
           )}
 
-        {/* HLS items in 'folder' sections: render cards */}
-        {!loading &&
-          !error &&
-          section.type === 'folder' &&
-          contentType === 'hls' &&
-          items.length > 0 && (
-          <ul className="m-0 grid list-none gap-6 p-0">
-            {items.map((item) => (
-              <li key={item.id}>
-                <HlsPlayerPlaceholder
-                  itemId={item.id}
-                  hlsManifestUrl={item.hlsManifestUrl}
-                  hlsFrameUrl={item.hlsFrameUrl}
-                  hlsMetadataUrl={item.hlsMetadataUrl}
-                  itemTitle={item.title ?? null}
-                />
-              </li>
-            ))}
-          </ul>
-        )}
+          {!loading && error && (
+            <p className="text-sm text-red-600">{error.message}</p>
+          )}
 
-        {/* Audio items (type 'folder' with audio files) */}
-        {!loading && !error && contentType === 'audio' && items.length > 0 && (
-          <ul className="m-0 grid list-none gap-4 p-0">
-            {items.map((item) => (
-              <li key={item.id}>
-                <AudioPlayerPlaceholder
-                  itemId={item.id}
-                  audioUrl={item.audioUrl}
-                  audioKey={item.audioKey}
-                />
-              </li>
-            ))}
-          </ul>
-        )}
+          {/* File-type sections → FileViewerPlaceholder */}
+          {!loading && !error && section.type === 'file' && (
+            <FileViewerPlaceholder fileRef={section.entryName} r2BaseUrl={r2BaseUrl} />
+          )}
 
-        {/* Empty or unrecognised content */}
-        {!loading && !error && section.type !== 'file' && items.length === 0 && (
-          <div className="grid gap-4 rounded border border-black/10 bg-white/70 p-4 text-zinc-900">
-            <p className="m-0 text-sm opacity-70">
-              {contentType === 'unknown'
-                ? 'Tipo de contenido no reconocido en la carpeta R2.'
-                : 'No se encontró contenido en esta sección.'}
-            </p>
+          {/* HLS items in 'folder' sections: render cards */}
+          {!loading &&
+            !error &&
+            section.type === 'folder' &&
+            contentType === 'hls' &&
+            items.length > 0 && (
+            <ul className="m-0 grid list-none gap-6 p-0">
+              {items.map((item) => (
+                <li key={item.id}>
+                  <HlsPlayerPlaceholder
+                    itemId={item.id}
+                    hlsManifestUrl={item.hlsManifestUrl}
+                    hlsFrameUrl={item.hlsFrameUrl}
+                    hlsMetadataUrl={item.hlsMetadataUrl}
+                    itemTitle={item.title ?? null}
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
 
-            {diagnostics && (
-              <dl className="m-0 grid gap-3 text-xs">
-                <div className="grid gap-1">
-                  <dt className="font-mono uppercase tracking-[0.12em] opacity-60">
-                    Prefijo buscado
-                  </dt>
-                  <dd className="m-0 break-all font-mono">{diagnostics.folderPrefix ?? '—'}</dd>
-                </div>
+          {/* Audio items (type 'folder' with audio files) */}
+          {!loading && !error && contentType === 'audio' && items.length > 0 && (
+            <ul className="m-0 grid list-none gap-4 p-0">
+              {items.map((item) => (
+                <li key={item.id}>
+                  <AudioPlayerPlaceholder
+                    itemId={item.id}
+                    audioUrl={item.audioUrl}
+                    audioKey={item.audioKey}
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
 
-                <div className="grid gap-1">
-                  <dt className="font-mono uppercase tracking-[0.12em] opacity-60">
-                    URL de búsqueda
-                  </dt>
-                  <dd className="m-0 break-all font-mono">
-                    {diagnostics.listingUrl ? (
-                      <a
-                        className="underline"
-                        href={diagnostics.listingUrl}
-                        rel="noreferrer"
-                        target="_blank"
-                      >
-                        {diagnostics.listingUrl}
-                      </a>
-                    ) : (
-                      '—'
-                    )}
-                  </dd>
-                </div>
+          {/* Empty or unrecognised content */}
+          {!loading && !error && section.type !== 'file' && items.length === 0 && (
+            <div className="grid gap-4 rounded border border-black/10 bg-white/70 p-4 text-zinc-900">
+              <p className="m-0 text-sm opacity-70">
+                {contentType === 'unknown'
+                  ? 'Tipo de contenido no reconocido en la carpeta R2.'
+                  : 'No se encontró contenido en esta sección.'}
+              </p>
 
-                <div className="grid gap-1">
-                  <dt className="font-mono uppercase tracking-[0.12em] opacity-60">
-                    Carpetas / archivos encontrados
-                  </dt>
-                  <dd className="m-0">
-                    {renderDebugList(
-                      diagnostics.foundEntries,
-                      'El listado de R2 no devolvió carpetas ni archivos para ese prefijo.',
-                    )}
-                  </dd>
-                </div>
-
-                <div className="grid gap-1">
-                  <dt className="font-mono uppercase tracking-[0.12em] opacity-60">
-                    Claves devueltas por R2
-                  </dt>
-                  <dd className="m-0">
-                    {renderDebugList(
-                      diagnostics.foundKeys,
-                      'R2 no devolvió ninguna clave para esa búsqueda.',
-                    )}
-                  </dd>
-                </div>
-
-                {diagnostics.errorMessage && (
+              {diagnostics && (
+                <dl className="m-0 grid gap-3 text-xs">
                   <div className="grid gap-1">
-                    <dt className="font-mono uppercase tracking-[0.12em] text-red-700">
-                      Error del listado
+                    <dt className="font-mono uppercase tracking-[0.12em] opacity-60">
+                      Prefijo buscado
                     </dt>
-                    <dd className="m-0 break-all font-mono text-red-700">
-                      {diagnostics.errorMessage}
+                    <dd className="m-0 break-all font-mono">{diagnostics.folderPrefix ?? '—'}</dd>
+                  </div>
+
+                  <div className="grid gap-1">
+                    <dt className="font-mono uppercase tracking-[0.12em] opacity-60">
+                      URL de búsqueda
+                    </dt>
+                    <dd className="m-0 break-all font-mono">
+                      {diagnostics.listingUrl ? (
+                        <a
+                          className="underline"
+                          href={diagnostics.listingUrl}
+                          rel="noreferrer"
+                          target="_blank"
+                        >
+                          {diagnostics.listingUrl}
+                        </a>
+                      ) : (
+                        '—'
+                      )}
                     </dd>
                   </div>
-                )}
-              </dl>
-            )}
-          </div>
-        )}
-      </div>
+
+                  <div className="grid gap-1">
+                    <dt className="font-mono uppercase tracking-[0.12em] opacity-60">
+                      Carpetas / archivos encontrados
+                    </dt>
+                    <dd className="m-0">
+                      {renderDebugList(
+                        diagnostics.foundEntries,
+                        'El listado de R2 no devolvió carpetas ni archivos para ese prefijo.',
+                      )}
+                    </dd>
+                  </div>
+
+                  <div className="grid gap-1">
+                    <dt className="font-mono uppercase tracking-[0.12em] opacity-60">
+                      Claves devueltas por R2
+                    </dt>
+                    <dd className="m-0">
+                      {renderDebugList(
+                        diagnostics.foundKeys,
+                        'R2 no devolvió ninguna clave para esa búsqueda.',
+                      )}
+                    </dd>
+                  </div>
+
+                  {diagnostics.errorMessage && (
+                    <div className="grid gap-1">
+                      <dt className="font-mono uppercase tracking-[0.12em] text-red-700">
+                        Error del listado
+                      </dt>
+                      <dd className="m-0 break-all font-mono text-red-700">
+                        {diagnostics.errorMessage}
+                      </dd>
+                    </div>
+                  )}
+                </dl>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </section>
   )
 }

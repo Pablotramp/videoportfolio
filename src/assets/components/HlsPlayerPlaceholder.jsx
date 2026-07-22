@@ -2,9 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import HlsModal from './HlsModal.jsx'
 import HlsPlayer from './HlsPlayer.jsx'
 
-const INLINE_PLAYER_RESERVED_HEIGHT_PX = 190
+const HEADER_HEIGHT_PX = 64
 const DEFAULT_FOOTER_HEIGHT_PX = 41
-const INLINE_PLAYER_MAX_HEIGHT = `calc(100dvh - ${INLINE_PLAYER_RESERVED_HEIGHT_PX}px - var(--footer-h, ${DEFAULT_FOOTER_HEIGHT_PX}px))`
+// Height of the inline player = full viewport minus header and footer.
+// The section-page--fullheight already reserves the header; the player is
+// rendered without an inner padding wrapper so it can fill the entire section.
+const INLINE_PLAYER_HEIGHT = `calc(100dvh - ${HEADER_HEIGHT_PX}px - var(--footer-h, ${DEFAULT_FOOTER_HEIGHT_PX}px))`
 
 function getTrimmedString(value) {
   return typeof value === 'string' ? value.trim() : ''
@@ -84,16 +87,14 @@ function HlsPlayerPlaceholder({
 
   if (inline) {
     return (
-      <div className="w-full">
+      <div className="w-full bg-black" style={{ height: INLINE_PLAYER_HEIGHT }}>
         <p className="sr-only">Vídeo en reproducción automática en silencio.</p>
         <HlsPlayer
           src={hlsManifestUrl}
           muted
           autoPlay
-          className="w-full bg-black"
-          style={{
-            maxHeight: INLINE_PLAYER_MAX_HEIGHT,
-          }}
+          className="w-full h-full"
+          style={{ objectFit: 'contain' }}
         />
       </div>
     )
