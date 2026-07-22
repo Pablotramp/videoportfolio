@@ -51,13 +51,32 @@ function buildItemsFromManifest(manifestSection, r2BaseUrl) {
 }
 
 /**
+ * Filter manifest.files to the keys belonging to one section prefix.
+ *
+ * @param {string[]|null} manifestFiles - Full list from _manifest.json `files`
+ * @param {string}        entryName     - Section folder name (e.g. "Sketches")
+ * @returns {string[]|null} Matching keys, or null when manifest data is absent
+ */
+function filterManifestKeys(manifestFiles, entryName) {
+  if (!Array.isArray(manifestFiles) || !entryName) return null
+  const prefix = `${entryName}/`
+  const filtered = manifestFiles.filter((k) => typeof k === 'string' && k.startsWith(prefix))
+  return filtered.length > 0 ? filtered : null
+}
+
+/**
  * Intermediary hook: scans a portfolio section in Cloudflare R2 and
  * returns typed items for the appropriate content component.
  *
- * When sectionManifest is provided (loaded from _manifest.json) and contains
- * an entry for the current section, the manifest is used directly and no
- * bucket listing (?list-type=2) is performed.  Falls back to live scanning
- * when manifest data is absent.
+ * Resolution order (first match wins, no network listing if resolved):
+ *
+ *   1. sectionManifest[entryName] present  → pre-classified data from _manifest.json
+ *      `sections` block; no network call.
+ *
+ *   2. manifestFiles present               → filter _manifest.json `files` by section
+ *      prefix, classify with the same logic as the live scanner; no network call.
+ *
+ *   3. Fallback                            → live bucket listing (?list-type=2).
  *
  * Routing logic:
  *   section.type === 'video'  → scanVideoSection → items with itemType 'hls'
@@ -73,9 +92,10 @@ function buildItemsFromManifest(manifestSection, r2BaseUrl) {
  * @param {{ type: string, entryName: string, name: string } | null} section
  * @param {string | null} r2BaseUrl
  * @param {Record<string, { contentType: string, items: Array }> | null} [sectionManifest]
+ * @param {string[] | null} [manifestFiles]
  * @returns {{ contentType: string|null, items: Array, diagnostics: object|null, loading: boolean, error: Error|null }}
  */
-export function useSection(section, r2BaseUrl, sectionManifest) {
+export function useSection(section, r2BaseUrl, sectionManifest, manifestFiles) {
   const currentSectionKey = getSectionKey(section, r2BaseUrl)
   const [state, setState] = useState(() => ({
     ...DEFAULT_STATE,
@@ -91,7 +111,7 @@ export function useSection(section, r2BaseUrl, sectionManifest) {
     let cancelled = false
 
     async function scan() {
-      // ── Manifest path: use pre-classified data, no network listing needed ──
+      // ── Path 1: pre-classified manifest.sections entry ────────────────────
       const manifestSection =
         sectionManifest && section.entryName
           ? (sectionManifest[section.entryName] ?? null)
@@ -112,16 +132,22 @@ export function useSection(section, r2BaseUrl, sectionManifest) {
         return
       }
 
-      // ── Legacy path: live bucket scanning (?list-type=2) ─────────────────
+      // ── Path 2 & 3: scan (with or without preloaded keys from manifest.files)
       setState(DEFAULT_STATE)
+
+      // If manifest.files is available, filter by prefix to avoid any listing call.
+      const preloadedKeys =
+        section.type !== 'file'
+          ? filterManifestKeys(manifestFiles, section.entryName)
+          : null
 
       try {
         let result
 
         if (section.type === 'video') {
-          result = await scanVideoSection(r2BaseUrl, section.entryName)
+          result = await scanVideoSection(r2BaseUrl, section.entryName, preloadedKeys)
         } else if (section.type === 'folder') {
-          result = await scanFolderSection(r2BaseUrl, section.entryName)
+          result = await scanFolderSection(r2BaseUrl, section.entryName, preloadedKeys)
         } else if (section.type === 'file') {
           // File-type sections reference a single document — no folder scan needed.
           result = {
@@ -161,7 +187,7 @@ export function useSection(section, r2BaseUrl, sectionManifest) {
     return () => {
       cancelled = true
     }
-  }, [currentSectionKey, r2BaseUrl, section, sectionManifest])
+  }, [currentSectionKey, r2BaseUrl, section, sectionManifest, manifestFiles])
 
   if (!currentSectionKey) {
     return { ...DEFAULT_STATE, loading: false }

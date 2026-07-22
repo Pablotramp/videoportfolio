@@ -120,9 +120,24 @@ function createR2ConfigError() {
  * ─────────────────────────────────────────────────────────────────────────────
  * {
  *   "version": 1,
+ *
+ *   // Flat list of every object key in the bucket.
+ *   // Used to classify section content without any ?list-type=2 call.
+ *   "files": [
+ *     "Sketches/Capitulo1/master.m3u8",
+ *     "Sketches/Capitulo1/1080p_000.ts",
+ *     "Sketches/track.m4a",
+ *     ...
+ *   ],
+ *
+ *   // Optional: map of cover-image filename → resolved bucket key.
+ *   // Skips the ?list-type=2 call for image resolution too.
  *   "sectionImages": {
  *     "<img-filename-from-estructura>": "<resolved-bucket-key>"
  *   },
+ *
+ *   // Optional: pre-classified content per section.
+ *   // When present for a section, overrides both `files` and live listing.
  *   "sections": {
  *     "<entryName>": {
  *       "contentType": "hls" | "audio" | "file" | "unknown",
@@ -210,6 +225,8 @@ export function createR2PortfolioSource(config = {}) {
           manifest && manifest.sections && typeof manifest.sections === 'object'
             ? manifest.sections
             : null,
+        manifestFiles:
+          manifest && Array.isArray(manifest.files) ? manifest.files : null,
       }
     },
   }
