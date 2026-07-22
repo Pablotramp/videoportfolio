@@ -68,7 +68,7 @@ function HlsPlayerPlaceholder({ itemId, hlsManifestUrl, hlsFrameUrl, inline = fa
         </div>
 
         <div className="p-4">
-          <h3 className="line-clamp-2 text-base leading-snug font-semibold text-white">{title}</h3>
+          <h3 className="line-clamp-2 text-base font-semibold leading-snug text-white">{title}</h3>
         </div>
       </article>
 

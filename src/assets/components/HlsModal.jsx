@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react'
 import PropTypes from 'prop-types'
-import HLSPlayer from './HlsPlayer.jsx'
+import HlsPlayer from './HlsPlayer.jsx'
 
 /**
- * HLSModal - Pseudo-modal universal que muestra el reproductor HLS.
+ * HlsModal - Pseudo-modal universal que muestra el reproductor HLS.
  *
  * No usa window.open ni dialog nativo: es una capa flotante compatible
  * con todos los navegadores, sin popup-killers ni deprecaciones.
@@ -13,7 +13,7 @@ import HLSPlayer from './HlsPlayer.jsx'
  * @param {string}   src      - URL del manifiesto master.m3u8
  * @param {string}   [titulo] - Título opcional del vídeo
  */
-export default function HLSModal({ isOpen, onClose, src, titulo }) {
+export default function HlsModal({ isOpen, onClose, src, titulo }) {
   const overlayRef = useRef(null)
 
   // Cerrar con tecla Escape
@@ -68,14 +68,14 @@ export default function HLSModal({ isOpen, onClose, src, titulo }) {
 
         {/* Reproductor */}
         <div className="p-4">
-          <HLSPlayer src={src} />
+          <HlsPlayer src={src} />
         </div>
       </div>
     </div>
   )
 }
 
-HLSModal.propTypes = {
+HlsModal.propTypes = {
   isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
   src: PropTypes.string,

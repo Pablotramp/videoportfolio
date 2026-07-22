@@ -3,11 +3,11 @@ import PropTypes from 'prop-types'
 import Hls from 'hls.js'
 
 /**
- * HLSPlayer - Reproductor de vídeo HLS integrado en la pseudo-modal.
+ * HlsPlayer - Reproductor de vídeo HLS integrado en la pseudo-modal.
  *
  * @param {string} src - URL del manifiesto master.m3u8
  */
-export default function HLSPlayer({ src }) {
+export default function HlsPlayer({ src }) {
   const videoRef = useRef(null)
 
   useEffect(() => {
@@ -37,11 +37,12 @@ export default function HLSPlayer({ src }) {
       ref={videoRef}
       controls
       autoPlay
+      muted
       className="w-full max-h-[70vh] rounded-lg bg-black"
     />
   )
 }
 
-HLSPlayer.propTypes = {
+HlsPlayer.propTypes = {
   src: PropTypes.string,
 }
