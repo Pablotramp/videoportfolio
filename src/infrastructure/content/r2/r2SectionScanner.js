@@ -233,8 +233,18 @@ function classifyFolder(baseUrl, keys, folderPrefix) {
       const streamKeys = streamRelKeys
         .filter((relKey) => relKey.startsWith(streamPrefix))
         .map((relKey) => `${folderPrefix}${relKey}`)
+      // Include the sibling JSON (e.g. "FolderSection/SubVideo.json") so that
+      // pickPreferredMetadataKey can detect it even though it lives outside the
+      // HLS subfolder.
+      const siblingJsonRel = `${subfolder}.json`
+      const siblingJsonFullKey = directFiles.includes(siblingJsonRel)
+        ? `${folderPrefix}${siblingJsonRel}`
+        : null
+      const streamKeysWithSibling = siblingJsonFullKey
+        ? [...streamKeys, siblingJsonFullKey]
+        : streamKeys
       const hlsManifestKey = `${folderPrefix}${m3u8Rel}`
-      const streamMetadata = getStreamMetadata(baseUrl, streamKeys, hlsManifestKey)
+      const streamMetadata = getStreamMetadata(baseUrl, streamKeysWithSibling, hlsManifestKey)
       return {
         id: subfolder,
         itemType: 'hls',
@@ -335,6 +345,28 @@ export async function scanVideoSection(baseUrl, videoName, preloadedKeys = null)
     return { contentType: 'hls', items: [], diagnostics }
   }
 
+  // Keys inside the HLS folder (e.g. "VideoName/master.m3u8", "VideoName/seg.ts")
+  const folderStreamKeys = keys.filter((key) => key.startsWith(folderPrefix))
+
+  // The metadata JSON lives NEXT TO the folder, not inside it
+  // (e.g. "VideoName.json" alongside "VideoName/"). Include it when present
+  // in preloadedKeys; otherwise try it speculatively — the component handles 404
+  // gracefully and falls back to null title.
+  const siblingJsonKey = `${videoName.trim()}.json`
+  const streamKeysWithSibling = keys.includes(siblingJsonKey)
+    ? [...folderStreamKeys, siblingJsonKey]
+    : folderStreamKeys
+
+  const streamMetadata = getStreamMetadata(baseUrl, streamKeysWithSibling, m3u8Key)
+
+  // Fallback for the live-listing path: sibling JSON was never fetched because
+  // bucket listing only covers the folder prefix.  Speculatively point to it so
+  // HlsPlayerPlaceholder can attempt the fetch (graceful 404 already handled).
+  if (!streamMetadata.hlsMetadataKey) {
+    streamMetadata.hlsMetadataKey = siblingJsonKey
+    streamMetadata.hlsMetadataUrl = toObjectUrl(baseUrl, siblingJsonKey)
+  }
+
   return {
     contentType: 'hls',
     diagnostics,
@@ -343,11 +375,7 @@ export async function scanVideoSection(baseUrl, videoName, preloadedKeys = null)
         id: videoName,
         itemType: 'hls',
         hlsFolder: videoName,
-        ...getStreamMetadata(
-          baseUrl,
-          keys.filter((key) => key.startsWith(folderPrefix)),
-          m3u8Key,
-        ),
+        ...streamMetadata,
         hlsManifestUrl: toObjectUrl(baseUrl, m3u8Key),
       },
     ],

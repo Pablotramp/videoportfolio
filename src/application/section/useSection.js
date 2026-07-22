@@ -88,6 +88,9 @@ function buildItemsFromManifest(manifestSection, r2BaseUrl) {
 
 /**
  * Filter manifest.files to the keys belonging to one section prefix.
+ * Also includes the sibling metadata JSON (e.g. "VideoName.json" alongside
+ * a "VideoName/" folder) so that video-type sections can resolve titles via
+ * the manifest.files fast path without a live bucket listing.
  *
  * @param {string[]|null} manifestFiles - Full list from _manifest.json `files`
  * @param {string}        entryName     - Section folder name (e.g. "Sketches")
@@ -95,8 +98,12 @@ function buildItemsFromManifest(manifestSection, r2BaseUrl) {
  */
 function filterManifestKeys(manifestFiles, entryName) {
   if (!Array.isArray(manifestFiles) || !entryName || !entryName.trim()) return null
-  const prefix = `${entryName.trim()}/`
-  const filtered = manifestFiles.filter((k) => typeof k === 'string' && k.startsWith(prefix))
+  const trimmed = entryName.trim()
+  const prefix = `${trimmed}/`
+  const sidecarKey = `${trimmed}.json`
+  const filtered = manifestFiles.filter(
+    (k) => typeof k === 'string' && (k.startsWith(prefix) || k === sidecarKey),
+  )
   return filtered.length > 0 ? filtered : null
 }
 
