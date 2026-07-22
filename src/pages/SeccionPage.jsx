@@ -56,10 +56,10 @@ function renderDebugList(items, emptyLabel) {
  * Lee el tipo de sección desde _estructura.json (vía useSection) y despacha
  * los items al componente de contenido correspondiente:
  *
- *   type 'video'  + items HLS  → HlsPlayerPlaceholder  (→ video-hls-packager)
- *   type 'folder' + items HLS  → HlsPlayerPlaceholder  (→ video-hls-packager)
- *   type 'folder' + items audio→ AudioPlayerPlaceholder (→ componente audio)
- *   type 'file'                → FileViewerPlaceholder  (→ visor de archivos)
+ *   type 'video'  + items HLS  → HlsPlayerPlaceholder inline (reproductor directo)
+ *   type 'folder' + items HLS  → HlsPlayerPlaceholder (cards + modal)
+ *   type 'folder' + items audio→ AudioPlayerPlaceholder
+ *   type 'file'                → FileViewerPlaceholder
  */
 function SeccionPage({ sections, r2BaseUrl, sectionManifest, manifestFiles }) {
   const { slug } = useParams()
@@ -113,20 +113,33 @@ function SeccionPage({ sections, r2BaseUrl, sectionManifest, manifestFiles }) {
           <FileViewerPlaceholder fileRef={section.entryName} r2BaseUrl={r2BaseUrl} />
         )}
 
-        {/* HLS video items (type 'video' or 'folder' with HLS subfolders) */}
-        {!loading && !error && contentType === 'hls' && items.length > 0 && (
+        {/* HLS items in 'video' sections: render a single inline player */}
+        {!loading &&
+          !error &&
+          section.type === 'video' &&
+          contentType === 'hls' &&
+          items.length > 0 && (
+            <HlsPlayerPlaceholder
+              itemId={items[0].id}
+              hlsManifestUrl={items[0].hlsManifestUrl}
+              hlsFrameUrl={items[0].hlsFrameUrl}
+              inline
+            />
+          )}
+
+        {/* HLS items in 'folder' sections: render cards */}
+        {!loading &&
+          !error &&
+          section.type === 'folder' &&
+          contentType === 'hls' &&
+          items.length > 0 && (
           <ul className="m-0 grid list-none gap-6 p-0">
             {items.map((item) => (
               <li key={item.id}>
                 <HlsPlayerPlaceholder
                   itemId={item.id}
-                  hlsFolder={item.hlsFolder}
-                  hlsManifestKey={item.hlsManifestKey}
                   hlsManifestUrl={item.hlsManifestUrl}
-                  hlsFiles={item.hlsFiles}
-                  hlsFrameKey={item.hlsFrameKey}
                   hlsFrameUrl={item.hlsFrameUrl}
-                  r2BaseUrl={r2BaseUrl}
                 />
               </li>
             ))}

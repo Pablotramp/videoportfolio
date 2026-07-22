@@ -1,92 +1,79 @@
-/**
- * HlsPlayerPlaceholder
- *
- * Placeholder para el componente video-hls-packager (en desarrollo).
- *
- * Recibe la referencia a la carpeta HLS en R2 y la URL del manifest .m3u8.
- * Cuando video-hls-packager esté disponible como componente, este placeholder
- * deberá sustituirse por la integración real.
- *
- * Props:
- *   itemId         {string}      Identificador único del item (nombre de la carpeta)
- *   hlsFolder      {string}      Ruta de la carpeta HLS en R2 (ej: "Animacion/capitulo-01")
- *   hlsManifestKey {string|null} Clave del manifest .m3u8 en el bucket
- *   hlsManifestUrl {string|null} URL completa al archivo .m3u8
- *   hlsFiles       {string[]}    Archivos del stream obtenidos del _manifest.json
- *   hlsFrameKey    {string|null} Clave de frame.jpg (si existe)
- *   hlsFrameUrl    {string|null} URL pública del frame (si existe)
- *   r2BaseUrl      {string}      URL base del bucket R2 (sin barra final)
- *
- * TODO: reemplazar este placeholder por la integración con video-hls-packager
- *       cuando el componente esté disponible.
- */
-function HlsPlayerPlaceholder({
-  itemId,
-  hlsFolder,
-  hlsManifestKey,
-  hlsManifestUrl,
-  hlsFiles,
-  hlsFrameKey,
-  hlsFrameUrl,
-  r2BaseUrl,
-}) {
-  const visibleFiles = Array.isArray(hlsFiles) ? hlsFiles.slice(0, 8) : []
-  const hlsFileCount = Array.isArray(hlsFiles) ? hlsFiles.length : 0
-  const hiddenFilesCount = Math.max(hlsFileCount - visibleFiles.length, 0)
+import { useCallback, useState } from 'react'
+import HlsModal from './HlsModal.jsx'
+import HlsPlayer from './HlsPlayer.jsx'
+
+function HlsPlayerPlaceholder({ itemId, hlsManifestUrl, hlsFrameUrl, inline = false }) {
+  const [isOpen, setIsOpen] = useState(false)
+
+  const handleOpen = useCallback(() => setIsOpen(true), [])
+  const handleClose = useCallback(() => setIsOpen(false), [])
+
+  const title = itemId ?? 'Video'
+
+  if (!hlsManifestUrl) {
+    return (
+      <div className="grid gap-2 rounded border border-red-300 bg-red-50 p-4 text-red-700">
+        <p className="m-0 text-sm font-medium">No se encontró el manifiesto HLS.</p>
+      </div>
+    )
+  }
+
+  if (inline) {
+    return (
+      <div className="grid gap-3 rounded border border-black/20 bg-black/20 p-4">
+        <p className="m-0 text-sm font-medium">{title}</p>
+        <HlsPlayer src={hlsManifestUrl} />
+      </div>
+    )
+  }
 
   return (
-    <div
-      className="grid gap-3 rounded border border-dashed border-zinc-400 bg-zinc-100 p-6 text-zinc-600"
-      aria-label={`Video HLS: ${itemId ?? hlsFolder}`}
-    >
-      <p className="m-0 text-xs uppercase tracking-[0.18em] text-zinc-400">
-        video · hls-packager (pendiente)
-      </p>
-      <p className="m-0 font-medium text-zinc-800">{itemId ?? hlsFolder}</p>
-      <dl className="m-0 grid gap-1 text-xs">
-        <div className="flex gap-2">
-          <dt className="font-mono text-zinc-400">hlsFolder</dt>
-          <dd className="m-0 truncate font-mono text-zinc-600">{hlsFolder ?? '—'}</dd>
+    <>
+      <article
+        onClick={handleOpen}
+        className="group relative flex cursor-pointer flex-col overflow-hidden rounded-xl bg-gray-800 shadow-lg transition-transform duration-200 hover:scale-[1.02] hover:shadow-xl"
+        role="button"
+        tabIndex={0}
+        aria-label={`Reproducir: ${title}`}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault()
+            handleOpen()
+          }
+        }}
+      >
+        <div className="relative aspect-video w-full overflow-hidden bg-gray-900">
+          {hlsFrameUrl ? (
+            <img
+              src={hlsFrameUrl}
+              alt={title}
+              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+              loading="lazy"
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center text-gray-500">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.277A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
+              </svg>
+            </div>
+          )}
+
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+            <div className="rounded-full bg-black/60 p-4">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </div>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <dt className="font-mono text-zinc-400">manifestKey</dt>
-          <dd className="m-0 truncate font-mono text-zinc-600">{hlsManifestKey ?? '—'}</dd>
+
+        <div className="p-4">
+          <h3 className="line-clamp-2 text-base leading-snug font-semibold text-white">{title}</h3>
         </div>
-        <div className="flex gap-2">
-          <dt className="font-mono text-zinc-400">manifest</dt>
-          <dd className="m-0 truncate font-mono text-zinc-600">{hlsManifestUrl ?? '—'}</dd>
-        </div>
-        <div className="flex gap-2">
-          <dt className="font-mono text-zinc-400">frameKey</dt>
-          <dd className="m-0 truncate font-mono text-zinc-600">{hlsFrameKey ?? '—'}</dd>
-        </div>
-        <div className="flex gap-2">
-          <dt className="font-mono text-zinc-400">frameUrl</dt>
-          <dd className="m-0 truncate font-mono text-zinc-600">{hlsFrameUrl ?? '—'}</dd>
-        </div>
-        <div className="grid gap-1">
-          <dt className="font-mono text-zinc-400">hlsFiles ({hlsFileCount})</dt>
-          <dd className="m-0 font-mono text-zinc-600">
-            {visibleFiles.length === 0 ? (
-              '—'
-            ) : (
-              <ul className="m-0 list-disc pl-5">
-                {visibleFiles.map((fileKey) => (
-                  <li key={fileKey} className="break-all">
-                    {fileKey}
-                  </li>
-                ))}
-                {hiddenFilesCount > 0 && <li>… y {hiddenFilesCount} más</li>}
-              </ul>
-            )}
-          </dd>
-        </div>
-        <div className="flex gap-2">
-          <dt className="font-mono text-zinc-400">r2BaseUrl</dt>
-          <dd className="m-0 truncate font-mono text-zinc-600">{r2BaseUrl ?? '—'}</dd>
-        </div>
-      </dl>
-    </div>
+      </article>
+
+      <HlsModal isOpen={isOpen} onClose={handleClose} src={hlsManifestUrl} titulo={title} />
+    </>
   )
 }
 
