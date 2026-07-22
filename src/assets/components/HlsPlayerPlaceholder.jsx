@@ -7,6 +7,16 @@ function HlsPlayerPlaceholder({ itemId, hlsManifestUrl, hlsFrameUrl, inline = fa
 
   const handleOpen = useCallback(() => setIsOpen(true), [])
   const handleClose = useCallback(() => setIsOpen(false), [])
+  const handleKeyDown = useCallback(
+    (event) => {
+      const isSpace = event.key === ' ' || event.code === 'Space'
+      if (event.key === 'Enter' || isSpace) {
+        event.preventDefault()
+        handleOpen()
+      }
+    },
+    [handleOpen],
+  )
 
   const title = itemId ?? 'Video'
 
@@ -35,13 +45,7 @@ function HlsPlayerPlaceholder({ itemId, hlsManifestUrl, hlsFrameUrl, inline = fa
         role="button"
         tabIndex={0}
         aria-label={`Reproducir: ${title}`}
-        onKeyDown={(event) => {
-          const isSpace = event.key === ' ' || event.code === 'Space'
-          if (event.key === 'Enter' || isSpace) {
-            event.preventDefault()
-            handleOpen()
-          }
-        }}
+        onKeyDown={handleKeyDown}
       >
         <div className="relative aspect-video w-full overflow-hidden bg-gray-900">
           {hlsFrameUrl ? (

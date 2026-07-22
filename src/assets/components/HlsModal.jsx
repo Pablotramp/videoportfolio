@@ -51,7 +51,7 @@ export default function HlsModal({ isOpen, onClose, src, titulo }) {
     >
       <div className="relative w-full max-w-4xl overflow-hidden rounded-xl bg-gray-900 shadow-2xl">
         {/* Barra superior */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
+        <header className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
           {titulo && (
             <h2 className="text-white font-semibold text-lg truncate pr-4">
               {titulo}
@@ -74,7 +74,7 @@ export default function HlsModal({ isOpen, onClose, src, titulo }) {
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M18 6L6 18" />
             </svg>
           </button>
-        </div>
+        </header>
 
         {/* Reproductor */}
         <div className="p-4">

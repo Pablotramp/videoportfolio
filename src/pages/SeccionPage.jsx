@@ -56,9 +56,9 @@ function renderDebugList(items, emptyLabel) {
  * Lee el tipo de sección desde _estructura.json (vía useSection) y despacha
  * los items al componente de contenido correspondiente:
  *
- *   type 'video'  + items HLS  → HlsPlayerPlaceholder inline (reproductor directo)
- *   type 'folder' + items HLS  → HlsPlayerPlaceholder (cards + modal)
- *   type 'folder' + items audio→ AudioPlayerPlaceholder
+ *   type 'video'  + items HLS  → HlsPlayerPlaceholder inline (reproductor real directo)
+ *   type 'folder' + items HLS  → HlsPlayerPlaceholder (cards reales + modal)
+ *   type 'folder' + items audio→ AudioPlayerPlaceholder (reproductor real nativo)
  *   type 'file'                → FileViewerPlaceholder
  */
 function SeccionPage({ sections, r2BaseUrl, sectionManifest, manifestFiles }) {
