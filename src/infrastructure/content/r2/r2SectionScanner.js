@@ -20,6 +20,7 @@ import { fetchBucketKeys, toBucketListingUrl, toObjectUrl } from './r2Utils.js'
 
 const AUDIO_EXTENSIONS = new Set(['m4a', 'mp3', 'aac', 'ogg', 'opus', 'flac', 'wav'])
 const HLS_SEGMENT_EXTENSIONS = new Set(['ts', 'm4s'])
+const IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'avif'])
 
 function getExtension(filename) {
   const lastDot = filename.lastIndexOf('.')
@@ -94,6 +95,33 @@ function pickPreferredM3u8(keys) {
     if (!fallback) fallback = key
   }
 
+  function isImageKey(key) {
+    return IMAGE_EXTENSIONS.has(getExtension(key))
+  }
+
+  function getFinalPathSegment(path) {
+    const segments = path.split('/')
+    return segments[segments.length - 1] ?? path
+  }
+
+  function getStreamMetadata(baseUrl, streamKeys, hlsManifestKey) {
+    const sanitizedManifestKey = typeof hlsManifestKey === 'string' ? hlsManifestKey : ''
+    const hlsFiles = streamKeys.filter((key) => key && key !== sanitizedManifestKey)
+    const frameCandidate =
+      hlsFiles.find((key) => {
+        if (!isImageKey(key)) return false
+        return getBaseName(getFinalPathSegment(key)).toLowerCase() === 'frame'
+      }) ?? null
+
+    return {
+      hlsManifestKey: sanitizedManifestKey,
+      hlsFiles,
+      hlsFileUrls: hlsFiles.map((key) => toObjectUrl(baseUrl, key)),
+      hlsFrameKey: frameCandidate,
+      hlsFrameUrl: frameCandidate ? toObjectUrl(baseUrl, frameCandidate) : null,
+    }
+  }
+
   return fallback
 }
 
@@ -137,6 +165,9 @@ function classifyFolder(baseUrl, keys, folderPrefix) {
 
   if (rootM3u8Filename && hasRootHlsSegments) {
     const rootFolderKey = trimTrailingSlash(folderPrefix)
+    const hlsManifestKey = `${folderPrefix}${rootM3u8Filename}`
+    const streamKeys = keys.filter((key) => key.startsWith(folderPrefix))
+    const streamMetadata = getStreamMetadata(baseUrl, streamKeys, hlsManifestKey)
 
     return {
       contentType: 'hls',
@@ -145,7 +176,8 @@ function classifyFolder(baseUrl, keys, folderPrefix) {
           id: rootFolderKey,
           itemType: 'hls',
           hlsFolder: rootFolderKey,
-          hlsManifestUrl: toObjectUrl(baseUrl, `${folderPrefix}${rootM3u8Filename}`),
+          ...streamMetadata,
+          hlsManifestUrl: toObjectUrl(baseUrl, hlsManifestKey),
         },
       ],
     }
@@ -172,11 +204,19 @@ function classifyFolder(baseUrl, keys, folderPrefix) {
   if (hlsFolders.length > 0) {
     const items = hlsFolders.map(({ subfolder, m3u8Rel }) => {
       const hlsFolder = `${folderPrefix}${subfolder}`
+      const streamPrefix = `${subfolder}/`
+      const streamRelKeys = subfolderMap.get(subfolder) ?? []
+      const streamKeys = streamRelKeys
+        .filter((relKey) => relKey.startsWith(streamPrefix))
+        .map((relKey) => `${folderPrefix}${relKey}`)
+      const hlsManifestKey = `${folderPrefix}${m3u8Rel}`
+      const streamMetadata = getStreamMetadata(baseUrl, streamKeys, hlsManifestKey)
       return {
         id: subfolder,
         itemType: 'hls',
         hlsFolder,
-        hlsManifestUrl: toObjectUrl(baseUrl, `${folderPrefix}${m3u8Rel}`),
+        ...streamMetadata,
+        hlsManifestUrl: toObjectUrl(baseUrl, hlsManifestKey),
       }
     })
     return { contentType: 'hls', items }
@@ -279,6 +319,11 @@ export async function scanVideoSection(baseUrl, videoName, preloadedKeys = null)
         id: videoName,
         itemType: 'hls',
         hlsFolder: videoName,
+        ...getStreamMetadata(
+          baseUrl,
+          keys.filter((key) => key.startsWith(folderPrefix)),
+          m3u8Key,
+        ),
         hlsManifestUrl: toObjectUrl(baseUrl, m3u8Key),
       },
     ],
