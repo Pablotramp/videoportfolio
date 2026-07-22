@@ -5,6 +5,9 @@ import Hls from 'hls.js'
 /**
  * HlsPlayer - Reproductor de vídeo HLS integrado en la pseudo-modal.
  *
+ * Reproduce con `autoPlay` y `muted` para permitir reproducción automática
+ * en secciones de tipo video sin bloquear por políticas del navegador.
+ *
  * @param {string} src - URL del manifiesto master.m3u8
  */
 export default function HlsPlayer({ src }) {
@@ -44,5 +47,5 @@ export default function HlsPlayer({ src }) {
 }
 
 HlsPlayer.propTypes = {
-  src: PropTypes.string,
+  src: PropTypes.string.isRequired,
 }
