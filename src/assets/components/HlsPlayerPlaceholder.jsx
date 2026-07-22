@@ -39,7 +39,11 @@ function HlsPlayerPlaceholder({
 
       try {
         const response = await fetch(hlsMetadataUrl)
-        if (!response.ok) throw new Error(`Metadata fetch failed: ${response.status}`)
+        if (!response.ok) {
+          throw new Error(
+            `Metadata fetch failed (${response.status} ${response.statusText}) at ${hlsMetadataUrl}`,
+          )
+        }
         const json = await response.json()
         const resolvedTitle =
           typeof json?.title === 'string' && json.title.trim() ? json.title.trim() : null
@@ -57,8 +61,10 @@ function HlsPlayerPlaceholder({
   }, [hlsMetadataUrl])
 
   const title = useMemo(() => {
-    if (typeof itemTitle === 'string' && itemTitle.trim()) return itemTitle.trim()
-    if (typeof metadataTitle === 'string' && metadataTitle.trim()) return metadataTitle.trim()
+    const trimmedItemTitle = typeof itemTitle === 'string' ? itemTitle.trim() : ''
+    if (trimmedItemTitle) return trimmedItemTitle
+    const trimmedMetadataTitle = typeof metadataTitle === 'string' ? metadataTitle.trim() : ''
+    if (trimmedMetadataTitle) return trimmedMetadataTitle
     return null
   }, [itemTitle, metadataTitle])
 
@@ -77,7 +83,10 @@ function HlsPlayerPlaceholder({
           src={hlsManifestUrl}
           muted
           autoPlay
-          className={`w-full max-h-[calc(100dvh-${INLINE_PLAYER_RESERVED_HEIGHT_PX}px-var(--footer-h,41px))] bg-black`}
+          className="w-full bg-black"
+          style={{
+            maxHeight: `calc(100dvh - ${INLINE_PLAYER_RESERVED_HEIGHT_PX}px - var(--footer-h, 41px))`,
+          }}
         />
       </div>
     )

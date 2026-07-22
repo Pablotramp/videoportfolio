@@ -42,7 +42,7 @@ function Header({ sections = [], siteTitle = null }) {
           <Link
             to="/"
             className={`inline-flex shrink-0 items-center rounded border p-3 ${controlButtonClass}`}
-            aria-label="Volver al loop"
+            aria-label="Volver al inicio"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"

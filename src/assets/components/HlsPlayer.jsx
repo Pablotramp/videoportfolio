@@ -11,6 +11,7 @@ export default function HlsPlayer({
   muted = true,
   autoPlay = true,
   className = 'w-full max-h-[70vh] rounded-lg bg-black',
+  style = undefined,
 }) {
   const videoRef = useRef(null)
 
@@ -43,6 +44,7 @@ export default function HlsPlayer({
       autoPlay={autoPlay}
       muted={muted}
       className={className}
+      style={style}
     />
   )
 }
