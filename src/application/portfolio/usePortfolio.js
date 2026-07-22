@@ -7,6 +7,7 @@ const DEFAULT_PORTFOLIO = {
   sectionImages: {},
   siteTitle: null,
   r2BaseUrl: null,
+  sectionManifest: null,
 }
 
 export function usePortfolio(source) {

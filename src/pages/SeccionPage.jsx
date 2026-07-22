@@ -61,11 +61,11 @@ function renderDebugList(items, emptyLabel) {
  *   type 'folder' + items audio→ AudioPlayerPlaceholder (→ componente audio)
  *   type 'file'                → FileViewerPlaceholder  (→ visor de archivos)
  */
-function SeccionPage({ sections, r2BaseUrl }) {
+function SeccionPage({ sections, r2BaseUrl, sectionManifest }) {
   const { slug } = useParams()
   const section = sections.find((entry) => entry.slug === slug)
 
-  const { contentType, items, diagnostics, loading, error } = useSection(section ?? null, r2BaseUrl)
+  const { contentType, items, diagnostics, loading, error } = useSection(section ?? null, r2BaseUrl, sectionManifest ?? null)
 
   if (!section) {
     return (
