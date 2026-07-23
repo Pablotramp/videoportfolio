@@ -12,6 +12,7 @@ function ReelItem({ hlsManifestUrl }) {
   const videoRef = useRef(null)
   const containerRef = useRef(null)
   const wasIntersectingRef = useRef(false)
+  const centerTimeoutRef = useRef(null)
   const [isMuted, setIsMuted] = useState(true)
 
   // Attach HLS source to the video element.
@@ -45,13 +46,21 @@ function ReelItem({ hlsManifestUrl }) {
       ([entry]) => {
         if (entry.isIntersecting) {
           if (!wasIntersectingRef.current) {
-            container.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            centerTimeoutRef.current = window.setTimeout(() => {
+              if (entry.intersectionRatio >= 0.75) {
+                container.scrollIntoView({ behavior: 'smooth', block: 'center' })
+              }
+            }, 120)
           }
           wasIntersectingRef.current = true
           video.play().catch(() => {
             // Autoplay may be blocked by the browser — silently ignore.
           })
         } else {
+          if (centerTimeoutRef.current) {
+            clearTimeout(centerTimeoutRef.current)
+            centerTimeoutRef.current = null
+          }
           wasIntersectingRef.current = false
           video.pause()
         }
@@ -60,7 +69,10 @@ function ReelItem({ hlsManifestUrl }) {
     )
 
     observer.observe(container)
-    return () => observer.disconnect()
+    return () => {
+      if (centerTimeoutRef.current) clearTimeout(centerTimeoutRef.current)
+      observer.disconnect()
+    }
   }, [])
 
   return (
