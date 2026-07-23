@@ -107,6 +107,14 @@ function createR2ConfigError() {
   )
 }
 
+function normalizePublicUrl(value) {
+  if (typeof value !== 'string') return ''
+  const trimmed = value.trim()
+  if (!trimmed) return ''
+  if (/^https?:\/\//i.test(trimmed)) return trimmed
+  return `https://${trimmed}`
+}
+
 /**
  * Cloudflare R2 portfolio source.
  *
@@ -169,7 +177,11 @@ export function createR2PortfolioSource(config = {}) {
         throw createR2ConfigError()
       }
 
-      const baseUrl = publicUrl.replace(/\/$/, '')
+      const normalizedPublicUrl = normalizePublicUrl(publicUrl)
+      if (!normalizedPublicUrl) {
+        throw createR2ConfigError()
+      }
+      const baseUrl = normalizedPublicUrl.replace(/\/$/, '')
 
       const estructuraJson = await fetchJson(`${baseUrl}/_estructura.json`, '_estructura.json')
 
