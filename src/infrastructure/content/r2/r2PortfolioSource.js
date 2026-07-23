@@ -109,12 +109,12 @@ function createR2ConfigError() {
 
 /**
  * Normalize a public bucket URL, defaulting to HTTPS when the protocol is omitted.
+ * Existing HTTP/HTTPS URLs are preserved to support local/dev bucket proxies.
  *
- * @param {unknown} value
+ * @param {string} value
  * @returns {string}
  */
 function normalizePublicUrl(value) {
-  if (typeof value !== 'string') return ''
   const trimmed = value.trim()
   if (!trimmed) return ''
   if (/^https?:\/\//i.test(trimmed)) return trimmed
@@ -181,6 +181,9 @@ export function createR2PortfolioSource(config = {}) {
 
       if (!publicUrl) {
         throw createR2ConfigError()
+      }
+      if (typeof publicUrl !== 'string') {
+        throw new Error('VITE_R2_PUBLIC_URL debe ser una cadena de texto.')
       }
 
       const normalizedPublicUrl = normalizePublicUrl(publicUrl)
