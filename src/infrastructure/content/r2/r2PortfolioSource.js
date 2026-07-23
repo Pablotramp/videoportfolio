@@ -107,6 +107,12 @@ function createR2ConfigError() {
   )
 }
 
+/**
+ * Normalize a public bucket URL, defaulting to HTTPS when the protocol is omitted.
+ *
+ * @param {unknown} value
+ * @returns {string}
+ */
 function normalizePublicUrl(value) {
   if (typeof value !== 'string') return ''
   const trimmed = value.trim()
