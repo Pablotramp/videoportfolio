@@ -4,6 +4,8 @@ import Hls from 'hls.js'
 const HEADER_HEIGHT_PX = 64
 const DEFAULT_FOOTER_HEIGHT_PX = 41
 const ITEM_HEIGHT = `calc(100dvh - ${HEADER_HEIGHT_PX}px - var(--footer-h, ${DEFAULT_FOOTER_HEIGHT_PX}px))`
+const CENTERING_VISIBILITY_THRESHOLD = 0.75
+const CENTERING_DELAY_MS = 120
 
 /**
  * ReelItem — single vertical HLS video that plays/pauses via IntersectionObserver.
@@ -61,10 +63,10 @@ function ReelItem({ hlsManifestUrl }) {
               const visibleHeight =
                 Math.min(rect.bottom, viewportHeight) - Math.max(rect.top, 0)
               const visibleRatio = Math.max(0, visibleHeight) / Math.max(rect.height, 1)
-              if (visibleRatio >= 0.75) {
-                container.scrollIntoView({ behavior: 'smooth', block: 'center' })
+              if (visibleRatio >= CENTERING_VISIBILITY_THRESHOLD) {
+                currentContainer.scrollIntoView({ behavior: 'smooth', block: 'center' })
               }
-            }, 120)
+            }, CENTERING_DELAY_MS)
           }
           wasIntersectingRef.current = true
           video.play().catch(() => {
@@ -102,7 +104,7 @@ function ReelItem({ hlsManifestUrl }) {
       >
         <video
           ref={videoRef}
-          muted={isMuted}
+          defaultMuted
           loop
           playsInline
           className="h-full w-full object-cover"
