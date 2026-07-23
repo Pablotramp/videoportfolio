@@ -11,6 +11,7 @@
  *         "folder"?: string,     // Origin: folder name in R2 → multimedia section
  *         "video"?: string,      // Origin: HLS folder for autoplay video sections
  *         "file"?: string,       // Origin: editorial index/map file (normally JSON)
+ *         "reel"?: string,       // Origin: HLS folder presented as a vertical reel feed
  *         "img"?: string,        // Cover image filename (resolved from _imagenesSeccionesJson/)
  *         "backgroundColor"?: string  // Hex color for slicer card and section page background
  *       }
@@ -26,6 +27,7 @@
  * Normalization rules:
  *   - backgroundColor values missing '#' get it prepended automatically.
  *   - Section type is inferred from the origin field present:
+ *       reel present   → 'reel'
  *       video present  → 'video'
  *       folder present → 'folder'
  *       file present   → 'file'
@@ -51,12 +53,13 @@ function normalizeColor(value) {
 
 /**
  * Infer the section type from an entry object.
- * Priority: video → 'video', folder → 'folder', file → 'file'.
+ * Priority: reel → 'reel', video → 'video', folder → 'folder', file → 'file'.
  *
- * @param {{ folder?: string, video?: string, file?: string }} entry
- * @returns {'folder' | 'video' | 'file'}
+ * @param {{ folder?: string, video?: string, file?: string, reel?: string }} entry
+ * @returns {'folder' | 'video' | 'file' | 'reel'}
  */
 function resolveSectionType(entry) {
+  if (entry.reel) return 'reel'
   if (entry.video) return 'video'
   if (entry.folder) return 'folder'
   if (entry.file) return 'file'
@@ -73,7 +76,7 @@ function resolveSectionType(entry) {
  *     index: number,
  *     label: string,
  *     origin: string,
- *     type: 'folder' | 'video' | 'file',
+ *     type: 'folder' | 'video' | 'file' | 'reel',
  *     img: string,
  *     backgroundColor: string | null
  *   }>,
@@ -96,6 +99,7 @@ export function parseEstructuraJson(raw) {
           if (!label) return []
 
           const origin =
+            (typeof entry.reel === 'string' && entry.reel.trim()) ||
             (typeof entry.video === 'string' && entry.video.trim()) ||
             (typeof entry.folder === 'string' && entry.folder.trim()) ||
             (typeof entry.file === 'string' && entry.file.trim()) ||
