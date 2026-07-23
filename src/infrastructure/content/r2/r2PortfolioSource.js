@@ -79,6 +79,7 @@ async function resolveSectionImageKey(baseUrl, section, resolver, hasListing) {
  */
 function resolveImagesFromManifest(baseUrl, sections, sectionImages) {
   const result = {}
+  const manifestKeys = Object.values(sectionImages).filter((value) => typeof value === 'string' && value.trim())
   let manifestResolver = null
 
   for (const section of sections) {
@@ -91,7 +92,6 @@ function resolveImagesFromManifest(baseUrl, sections, sectionImages) {
       // or only expose the prefixed object path. Reuse the same candidate strategy
       // as the live-listing path so SVG covers in `_imagenesSeccionesJson/` still load.
       if (!manifestResolver) {
-        const manifestKeys = Object.values(sectionImages).filter((value) => typeof value === 'string' && value.trim())
         manifestResolver = createKeyResolver(manifestKeys)
       }
 
