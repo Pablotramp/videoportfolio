@@ -72,12 +72,23 @@ async function resolveSectionImageKey(baseUrl, section, resolver, hasListing) {
 /**
  * Resolve section cover images using the sectionImages map from _manifest.json.
  *
+ * When an image is not listed in sectionImages, the function tries candidates
+ * in priority order (same convention as the legacy bucket-listing path):
+ *   1. imgName directly (bucket root)
+ *   2. _imagenesSeccionesJson/imgName (conventional subfolder)
+ *   3. folder/imgName (sibling of the section folder)
+ *
+ * If manifest.files is provided the first candidate found there is used;
+ * otherwise the first candidate (imgName) is used as a last-resort fallback.
+ *
  * @param {string} baseUrl
  * @param {object[]} sections  - Raw sections array from _estructura.json
  * @param {Record<string, string>} sectionImages - Map of img filename → bucket key
+ * @param {string[]|null} [manifestFiles] - Flat list of all bucket keys from _manifest.json
  * @returns {Record<string, string>}  Map of img filename → full public URL
  */
-function resolveImagesFromManifest(baseUrl, sections, sectionImages) {
+function resolveImagesFromManifest(baseUrl, sections, sectionImages, manifestFiles = null) {
+  const fileSet = Array.isArray(manifestFiles) ? new Set(manifestFiles) : null
   const result = {}
 
   for (const section of sections) {
@@ -91,10 +102,22 @@ function resolveImagesFromManifest(baseUrl, sections, sectionImages) {
       )
       result[imgName] = toObjectUrl(baseUrl, resolvedKey)
     } else {
+      const candidates = getSectionImageCandidates(section, imgName)
+      let fallbackKey = candidates[0]
+
+      if (fileSet) {
+        for (const candidate of candidates) {
+          if (fileSet.has(candidate)) {
+            fallbackKey = candidate
+            break
+          }
+        }
+      }
+
       console.warn(
-        `[r2:manifest:image] "${section.section ?? imgName}" — portada "${imgName}" no encontrada en manifest.sectionImages. Usando convención.`,
+        `[r2:manifest:image] "${section.section ?? imgName}" — portada "${imgName}" no encontrada en manifest.sectionImages. Usando "${fallbackKey}" como clave de reserva.`,
       )
-      result[imgName] = toObjectUrl(baseUrl, imgName)
+      result[imgName] = toObjectUrl(baseUrl, fallbackKey)
     }
   }
 
@@ -190,7 +213,12 @@ export function createR2PortfolioSource(config = {}) {
 
       if (manifest && manifest.sectionImages && typeof manifest.sectionImages === 'object') {
         // ── Manifest path: resolve images without bucket listing ──────────────
-        sectionImagesByName = resolveImagesFromManifest(baseUrl, sections, manifest.sectionImages)
+        sectionImagesByName = resolveImagesFromManifest(
+          baseUrl,
+          sections,
+          manifest.sectionImages,
+          Array.isArray(manifest.files) ? manifest.files : null,
+        )
       } else {
         // ── Legacy path: bucket listing (?list-type=2) ────────────────────────
         let bucketKeys = []
