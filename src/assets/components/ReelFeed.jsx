@@ -14,7 +14,6 @@ function ReelItem({ hlsManifestUrl, isMuted }) {
   const videoRef = useRef(null)
   const containerRef = useRef(null)
   const wasIntersectingRef = useRef(false)
-  const lastIntersectionRatioRef = useRef(0)
   const centerTimeoutRef = useRef(null)
 
   // Attach HLS source to the video element.
@@ -52,14 +51,15 @@ function ReelItem({ hlsManifestUrl, isMuted }) {
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        lastIntersectionRatioRef.current = entry.intersectionRatio
         if (entry.isIntersecting) {
           if (!wasIntersectingRef.current) {
+            // Capture stable values now; do not read mutable refs inside the callback.
+            const snapshotContainer = container
+            const snapshotRatio = entry.intersectionRatio
             centerTimeoutRef.current = window.setTimeout(() => {
-              const currentContainer = containerRef.current
-              if (!currentContainer || !wasIntersectingRef.current) return
-              if (lastIntersectionRatioRef.current >= CENTERING_VISIBILITY_THRESHOLD) {
-                currentContainer.scrollIntoView({ behavior: 'smooth', block: 'center' })
+              if (!wasIntersectingRef.current) return
+              if (snapshotRatio >= CENTERING_VISIBILITY_THRESHOLD) {
+                snapshotContainer.scrollIntoView({ behavior: 'smooth', block: 'center' })
               }
             }, CENTERING_DELAY_MS)
           }
@@ -132,7 +132,7 @@ export default function ReelFeed({ items }) {
         type="button"
         onClick={() => setIsMuted((value) => !value)}
         aria-label={soundToggleLabel}
-        className="fixed right-4 bottom-[calc(var(--footer-h,41px)+1rem)] z-50 rounded-full bg-black/70 px-4 py-2 text-xs font-medium text-white backdrop-blur-sm"
+        className="fixed right-4 bottom-[calc(var(--footer-h,41px)+1rem)] z-50 rounded-full bg-black/90 px-4 py-2 text-xs font-medium text-white backdrop-blur-sm"
       >
         {soundToggleLabel}
       </button>
