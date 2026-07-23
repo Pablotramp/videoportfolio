@@ -53,7 +53,7 @@ function normalizeColor(value) {
 
 /**
  * Infer the section type from an entry object.
- * Priority: video → 'video', folder → 'folder', file → 'file'.
+ * Priority: reel → 'reel', video → 'video', folder → 'folder', file → 'file'.
  *
  * @param {{ folder?: string, video?: string, file?: string, reel?: string }} entry
  * @returns {'folder' | 'video' | 'file' | 'reel'}
