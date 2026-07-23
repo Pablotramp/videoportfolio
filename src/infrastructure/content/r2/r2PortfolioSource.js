@@ -108,6 +108,20 @@ function createR2ConfigError() {
 }
 
 /**
+ * Normalize a public bucket URL, defaulting to HTTPS when the protocol is omitted.
+ * Existing HTTP/HTTPS URLs are preserved to support local/dev bucket proxies.
+ *
+ * @param {string} value
+ * @returns {string}
+ */
+function normalizePublicUrl(value) {
+  const trimmed = value.trim()
+  if (!trimmed) return ''
+  if (/^https?:\/\//i.test(trimmed)) return trimmed
+  return `https://${trimmed}`
+}
+
+/**
  * Cloudflare R2 portfolio source.
  *
  * Loads _estructura.json as the single source of truth for site structure.
@@ -165,11 +179,15 @@ export function createR2PortfolioSource(config = {}) {
       const runtimeEnv = import.meta.env ?? {}
       const publicUrl = config.publicUrl ?? runtimeEnv.VITE_R2_PUBLIC_URL
 
-      if (!publicUrl) {
+      if (typeof publicUrl !== 'string') {
+        throw new Error('VITE_R2_PUBLIC_URL debe ser una cadena de texto.')
+      }
+      if (!publicUrl.trim()) {
         throw createR2ConfigError()
       }
 
-      const baseUrl = publicUrl.replace(/\/$/, '')
+      const normalizedPublicUrl = normalizePublicUrl(publicUrl)
+      const baseUrl = normalizedPublicUrl.replace(/\/$/, '')
 
       const estructuraJson = await fetchJson(`${baseUrl}/_estructura.json`, '_estructura.json')
 
