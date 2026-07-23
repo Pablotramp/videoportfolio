@@ -179,17 +179,14 @@ export function createR2PortfolioSource(config = {}) {
       const runtimeEnv = import.meta.env ?? {}
       const publicUrl = config.publicUrl ?? runtimeEnv.VITE_R2_PUBLIC_URL
 
-      if (!publicUrl) {
-        throw createR2ConfigError()
-      }
       if (typeof publicUrl !== 'string') {
         throw new Error('VITE_R2_PUBLIC_URL debe ser una cadena de texto.')
       }
-
-      const normalizedPublicUrl = normalizePublicUrl(publicUrl)
-      if (!normalizedPublicUrl) {
+      if (!publicUrl.trim()) {
         throw createR2ConfigError()
       }
+
+      const normalizedPublicUrl = normalizePublicUrl(publicUrl)
       const baseUrl = normalizedPublicUrl.replace(/\/$/, '')
 
       const estructuraJson = await fetchJson(`${baseUrl}/_estructura.json`, '_estructura.json')
