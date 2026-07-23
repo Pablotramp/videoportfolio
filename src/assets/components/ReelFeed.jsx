@@ -14,6 +14,7 @@ function ReelItem({ hlsManifestUrl }) {
   const videoRef = useRef(null)
   const containerRef = useRef(null)
   const wasIntersectingRef = useRef(false)
+  const lastIntersectionRatioRef = useRef(0)
   const centerTimeoutRef = useRef(null)
   const [isMuted, setIsMuted] = useState(true)
 
@@ -52,18 +53,13 @@ function ReelItem({ hlsManifestUrl }) {
 
     const observer = new IntersectionObserver(
       ([entry]) => {
+        lastIntersectionRatioRef.current = entry.intersectionRatio
         if (entry.isIntersecting) {
           if (!wasIntersectingRef.current) {
             centerTimeoutRef.current = window.setTimeout(() => {
               const currentContainer = containerRef.current
               if (!currentContainer || !wasIntersectingRef.current) return
-              const viewportHeight =
-                window.innerHeight || document.documentElement.clientHeight
-              const rect = currentContainer.getBoundingClientRect()
-              const visibleHeight =
-                Math.min(rect.bottom, viewportHeight) - Math.max(rect.top, 0)
-              const visibleRatio = Math.max(0, visibleHeight) / Math.max(rect.height, 1)
-              if (visibleRatio >= CENTERING_VISIBILITY_THRESHOLD) {
+              if (lastIntersectionRatioRef.current >= CENTERING_VISIBILITY_THRESHOLD) {
                 currentContainer.scrollIntoView({ behavior: 'smooth', block: 'center' })
               }
             }, CENTERING_DELAY_MS)
@@ -77,6 +73,7 @@ function ReelItem({ hlsManifestUrl }) {
             clearTimeout(centerTimeoutRef.current)
             centerTimeoutRef.current = null
           }
+          lastIntersectionRatioRef.current = 0
           wasIntersectingRef.current = false
           video.pause()
         }
@@ -104,7 +101,6 @@ function ReelItem({ hlsManifestUrl }) {
       >
         <video
           ref={videoRef}
-          defaultMuted
           loop
           playsInline
           className="h-full w-full object-cover"
@@ -112,6 +108,7 @@ function ReelItem({ hlsManifestUrl }) {
         <button
           type="button"
           onClick={() => setIsMuted((value) => !value)}
+          aria-label={isMuted ? 'Activar sonido del video' : 'Silenciar video'}
           className="absolute right-3 bottom-3 rounded-full bg-black/70 px-3 py-2 text-xs font-medium text-white backdrop-blur-sm"
         >
           {isMuted ? 'Activar sonido' : 'Silenciar'}
