@@ -22,6 +22,9 @@ function Home({ sections }) {
   const [activeIndex, setActiveIndex] = useState(0)
   const activeIndexRef = useRef(0)
   const [isInteracting, setIsInteracting] = useState(false)
+  // [DEBUG SVG] Estado para registrar errores de carga de imágenes por sección.
+  // RESTAURAR: eliminar esta línea cuando se vuelva al comportamiento original.
+  const [imageErrors, setImageErrors] = useState({})
   const interactionTimerRef = useRef(null)
   const wheelLockedRef = useRef(false)
   const wheelTimerRef = useRef(null)
@@ -192,15 +195,21 @@ function Home({ sections }) {
             section.backgroundColor ?? (section.previewImage ? DEFAULT_MEDIA_BACKGROUND : undefined)
           const mediaStyle = {
             backgroundColor: sectionSurfaceColor,
-            ...(section.previewImage
-              ? {
-                  backgroundImage: `url("${section.previewImage}")`,
-                  backgroundPosition: 'center',
-                  backgroundRepeat: 'no-repeat',
-                  backgroundSize: 'contain',
-                  backgroundOrigin: 'content-box',
-                }
-              : undefined),
+            // [DEBUG SVG] backgroundImage fue comentado para poder detectar errores de carga.
+            // Con backgroundImage CSS el navegador falla silenciosamente y no se muestra nada.
+            // RESTAURAR el comportamiento original: descomentar el bloque de abajo
+            //   y eliminar el elemento <img> y el panel de error dentro del div .section-slide__media.
+            // ──────────────────────────────────────────────────────────────────────────────────────
+            // ...(section.previewImage
+            //   ? {
+            //       backgroundImage: `url("${section.previewImage}")`,
+            //       backgroundPosition: 'center',
+            //       backgroundRepeat: 'no-repeat',
+            //       backgroundSize: 'contain',
+            //       backgroundOrigin: 'content-box',
+            //     }
+            //   : undefined),
+            // ──────────────────────────────────────────────────────────────────────────────────────
           }
 
           return (
@@ -217,7 +226,37 @@ function Home({ sections }) {
               <div
                 className="section-slide__media relative z-10"
                 style={mediaStyle}
-              />
+              >
+                {/* [DEBUG SVG] <img> añadido para detectar errores de carga de imágenes.
+                    RESTAURAR: eliminar este bloque completo (desde el comentario hasta </div>)
+                    y descomentar backgroundImage en mediaStyle arriba. */}
+                {section.previewImage && (
+                  <img
+                    src={section.previewImage}
+                    alt={section.name}
+                    onError={() =>
+                      setImageErrors((prev) => ({
+                        ...prev,
+                        [section.entryName]: section.previewImage,
+                      }))
+                    }
+                  />
+                )}
+                {imageErrors[section.entryName] && (
+                  <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-red-950/90 p-4 text-white">
+                    <p className="m-0 text-sm font-bold uppercase tracking-wide">
+                      ⚠ Error al cargar imagen
+                    </p>
+                    <p className="m-0 break-all text-center font-mono text-xs opacity-90">
+                      {imageErrors[section.entryName]}
+                    </p>
+                    <p className="m-0 text-xs opacity-70">
+                      Comprueba la URL y los permisos CORS del bucket R2.
+                    </p>
+                  </div>
+                )}
+                {/* FIN bloque debug SVG */}
+              </div>
 
               {/* Click-navigation overlay — sits below the CTA so links remain clickable */}
               <div
