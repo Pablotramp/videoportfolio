@@ -36,6 +36,12 @@ function ReelItem({ hlsManifestUrl }) {
     }
   }, [hlsManifestUrl])
 
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+    video.muted = isMuted
+  }, [isMuted])
+
   // Play when ≥50 % of the item is visible; pause otherwise.
   useEffect(() => {
     const video = videoRef.current
@@ -47,7 +53,15 @@ function ReelItem({ hlsManifestUrl }) {
         if (entry.isIntersecting) {
           if (!wasIntersectingRef.current) {
             centerTimeoutRef.current = window.setTimeout(() => {
-              if (entry.intersectionRatio >= 0.75) {
+              const currentContainer = containerRef.current
+              if (!currentContainer || !wasIntersectingRef.current) return
+              const viewportHeight =
+                window.innerHeight || document.documentElement.clientHeight
+              const rect = currentContainer.getBoundingClientRect()
+              const visibleHeight =
+                Math.min(rect.bottom, viewportHeight) - Math.max(rect.top, 0)
+              const visibleRatio = Math.max(0, visibleHeight) / Math.max(rect.height, 1)
+              if (visibleRatio >= 0.75) {
                 container.scrollIntoView({ behavior: 'smooth', block: 'center' })
               }
             }, 120)
