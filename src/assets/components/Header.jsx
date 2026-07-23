@@ -14,6 +14,7 @@ function Header({ sections = [], siteTitle = null }) {
   )
   const headerSubtleTextClass = 'text-stone-300'
   const controlButtonClass = 'border-white/20 hover:bg-white hover:text-black'
+  const squareControlClass = 'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded border p-0'
   const activeLinkClass = 'border-white bg-white text-black'
   const inactiveLinkClass = 'border-white/20 hover:bg-white hover:text-black'
 
@@ -41,7 +42,7 @@ function Header({ sections = [], siteTitle = null }) {
         <div className="relative ml-auto flex items-center gap-2">
           <Link
             to="/"
-            className={`inline-flex shrink-0 items-center rounded border p-3 ${controlButtonClass}`}
+            className={`${squareControlClass} ${controlButtonClass}`}
             aria-label="Volver al inicio"
           >
             <svg
@@ -60,7 +61,7 @@ function Header({ sections = [], siteTitle = null }) {
           </Link>
           <button
             type="button"
-            className={`inline-flex shrink-0 items-center rounded border p-3 ${controlButtonClass}`}
+            className={`${squareControlClass} ${controlButtonClass}`}
             aria-expanded={isDrawerOpen}
             aria-controls="content-drawer"
             aria-label="Abrir menú de secciones"

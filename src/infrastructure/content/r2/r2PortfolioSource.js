@@ -79,11 +79,26 @@ async function resolveSectionImageKey(baseUrl, section, resolver, hasListing) {
  */
 function resolveImagesFromManifest(baseUrl, sections, sectionImages) {
   const result = {}
+  const manifestKeys = Object.values(sectionImages).filter((value) => typeof value === 'string' && value.trim())
+  let manifestResolver = null
 
   for (const section of sections) {
     if (typeof section.img !== 'string' || !section.img.trim()) continue
     const imgName = section.img.trim()
-    const resolvedKey = sectionImages[imgName]
+    let resolvedKey = sectionImages[imgName]
+
+    if (!resolvedKey) {
+      // Some manifests keep the resolved bucket key under a different filename key
+      // or only expose the prefixed object path. Reuse the same candidate strategy
+      // as the live-listing path so SVG covers in `_imagenesSeccionesJson/` still load.
+      if (!manifestResolver) {
+        manifestResolver = createKeyResolver(manifestKeys)
+      }
+
+      resolvedKey = getSectionImageCandidates(section, imgName)
+        .map((candidate) => manifestResolver.resolveKey(candidate))
+        .find(Boolean)
+    }
 
     if (resolvedKey) {
       console.info(
@@ -94,7 +109,7 @@ function resolveImagesFromManifest(baseUrl, sections, sectionImages) {
       console.warn(
         `[r2:manifest:image] "${section.section ?? imgName}" — portada "${imgName}" no encontrada en manifest.sectionImages. Usando convención.`,
       )
-      result[imgName] = toObjectUrl(baseUrl, imgName)
+      result[imgName] = toObjectUrl(baseUrl, `_imagenesSeccionesJson/${imgName}`)
     }
   }
 
