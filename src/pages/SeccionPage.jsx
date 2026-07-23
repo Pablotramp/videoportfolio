@@ -3,6 +3,7 @@ import { useSection } from '../application/section/useSection.js'
 import HlsPlayerPlaceholder from '../assets/components/HlsPlayerPlaceholder.jsx'
 import AudioPlayerPlaceholder from '../assets/components/AudioPlayerPlaceholder.jsx'
 import FileViewerPlaceholder from '../assets/components/FileViewerPlaceholder.jsx'
+import ReelFeed from '../assets/components/ReelFeed.jsx'
 
 const DEFAULT_SECTION_BACKGROUND = '#f8f7f4'
 const MAX_DEBUG_ITEMS = 25
@@ -59,6 +60,7 @@ function renderDebugList(items, emptyLabel) {
  *   type 'video'  + items HLS  → HlsPlayerPlaceholder inline (reproductor real directo)
  *   type 'folder' + items HLS  → HlsPlayerPlaceholder (cards reales + modal)
  *   type 'folder' + items audio→ AudioPlayerPlaceholder (reproductor real nativo)
+ *   type 'reel'   + items HLS  → ReelFeed (feed vertical estilo Instagram Reels)
  *   type 'file'                → FileViewerPlaceholder
  */
 function SeccionPage({ sections, r2BaseUrl, sectionManifest, manifestFiles }) {
@@ -93,6 +95,10 @@ function SeccionPage({ sections, r2BaseUrl, sectionManifest, manifestFiles }) {
   const isFullHeightVideo =
     !loading && !error && section.type === 'video' && contentType === 'hls' && items.length > 0
 
+  // Reel-type sections use a full-width vertical feed (no padding wrapper).
+  const isReelFeed =
+    !loading && !error && section.type === 'reel' && contentType === 'hls' && items.length > 0
+
   return (
     <section
       className={`section-page--fullheight w-full ${sectionTextClass}`}
@@ -110,9 +116,12 @@ function SeccionPage({ sections, r2BaseUrl, sectionManifest, manifestFiles }) {
         />
       )}
 
+      {/* Reel-type sections: vertical scrolling feed — no padding wrapper */}
+      {isReelFeed && <ReelFeed items={items} />}
+
       {/* All other states / content types use a padded container that also
           provides clearance so content never slides under the fixed footer. */}
-      {!isFullHeightVideo && (
+      {!isFullHeightVideo && !isReelFeed && (
         <div
           className="mx-auto grid w-full max-w-[1248px] gap-6 px-6 pt-8 md:pt-10"
           style={{ paddingBottom: 'calc(var(--footer-h, 41px) + 1.5rem)' }}

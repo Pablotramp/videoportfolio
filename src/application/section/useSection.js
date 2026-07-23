@@ -122,12 +122,13 @@ function filterManifestKeys(manifestFiles, entryName) {
  *   3. Fallback                            → live bucket listing (?list-type=2).
  *
  * Routing logic:
- *   section.type === 'video'  → scanVideoSection → items with itemType 'hls'
- *                               → HlsPlayerPlaceholder (→ video-hls-packager)
+ *   section.type === 'video'           → scanVideoSection → items with itemType 'hls'
+ *                                       → HlsPlayerPlaceholder (→ video-hls-packager)
  *
- *   section.type === 'folder' → scanFolderSection → items with itemType 'hls' or 'audio'
- *                               → HlsPlayerPlaceholder  (HLS subfolders)
- *                               → AudioPlayerPlaceholder (.m4a files)
+ *   section.type === 'folder'|'reel'  → scanFolderSection → items with itemType 'hls' or 'audio'
+ *                                       → HlsPlayerPlaceholder  (HLS subfolders)
+ *                                       → AudioPlayerPlaceholder (.m4a files)
+ *                                       → ReelFeed  (reel type, HLS subfolders)
  *
  *   section.type === 'file'   → no R2 scan; returns single file item
  *                               → FileViewerPlaceholder (→ file component)
@@ -189,7 +190,7 @@ export function useSection(section, r2BaseUrl, sectionManifest, manifestFiles) {
 
         if (section.type === 'video') {
           result = await scanVideoSection(r2BaseUrl, section.entryName, preloadedKeys)
-        } else if (section.type === 'folder') {
+        } else if (section.type === 'folder' || section.type === 'reel') {
           result = await scanFolderSection(r2BaseUrl, section.entryName, preloadedKeys)
         } else if (section.type === 'file') {
           // File-type sections reference a single document — no folder scan needed.
