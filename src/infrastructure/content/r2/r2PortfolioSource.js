@@ -78,12 +78,18 @@ async function resolveSectionImageKey(baseUrl, section, resolver, hasListing) {
  * @returns {Record<string, string>}  Map of img filename → full public URL
  */
 function resolveImagesFromManifest(baseUrl, sections, sectionImages) {
+  const manifestKeys = Object.values(sectionImages).filter((value) => typeof value === 'string' && value.trim())
+  const resolver = createKeyResolver(manifestKeys)
   const result = {}
 
   for (const section of sections) {
     if (typeof section.img !== 'string' || !section.img.trim()) continue
     const imgName = section.img.trim()
-    const resolvedKey = sectionImages[imgName]
+    const resolvedKey =
+      sectionImages[imgName] ??
+      getSectionImageCandidates(section, imgName)
+        .map((candidate) => resolver.resolveKey(candidate))
+        .find(Boolean)
 
     if (resolvedKey) {
       console.info(
@@ -94,7 +100,7 @@ function resolveImagesFromManifest(baseUrl, sections, sectionImages) {
       console.warn(
         `[r2:manifest:image] "${section.section ?? imgName}" — portada "${imgName}" no encontrada en manifest.sectionImages. Usando convención.`,
       )
-      result[imgName] = toObjectUrl(baseUrl, imgName)
+      result[imgName] = toObjectUrl(baseUrl, `_imagenesSeccionesJson/${imgName}`)
     }
   }
 
