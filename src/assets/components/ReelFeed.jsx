@@ -132,7 +132,7 @@ export default function ReelFeed({ items }) {
         type="button"
         onClick={() => setIsMuted((value) => !value)}
         aria-label={soundToggleLabel}
-        className="fixed right-4 bottom-[calc(var(--footer-h,41px)+1rem)] z-50 rounded-full bg-black/90 px-4 py-2 text-xs font-medium text-white backdrop-blur-sm"
+        className="fixed right-4 bottom-[calc(var(--footer-h,41px)+1rem)] z-50 rounded-full border border-white/30 bg-black/90 px-4 py-2 text-xs font-medium text-white backdrop-blur-sm"
       >
         {soundToggleLabel}
       </button>
