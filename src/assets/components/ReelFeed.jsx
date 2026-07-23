@@ -17,6 +17,7 @@ function ReelItem({ hlsManifestUrl }) {
   const lastIntersectionRatioRef = useRef(0)
   const centerTimeoutRef = useRef(null)
   const [isMuted, setIsMuted] = useState(true)
+  const soundToggleLabel = isMuted ? 'Activar sonido' : 'Silenciar'
 
   // Attach HLS source to the video element.
   useEffect(() => {
@@ -73,7 +74,6 @@ function ReelItem({ hlsManifestUrl }) {
             clearTimeout(centerTimeoutRef.current)
             centerTimeoutRef.current = null
           }
-          lastIntersectionRatioRef.current = 0
           wasIntersectingRef.current = false
           video.pause()
         }
@@ -108,10 +108,10 @@ function ReelItem({ hlsManifestUrl }) {
         <button
           type="button"
           onClick={() => setIsMuted((value) => !value)}
-          aria-label={isMuted ? 'Activar sonido del video' : 'Silenciar video'}
+          aria-label={soundToggleLabel}
           className="absolute right-3 bottom-3 rounded-full bg-black/70 px-3 py-2 text-xs font-medium text-white backdrop-blur-sm"
         >
-          {isMuted ? 'Activar sonido' : 'Silenciar'}
+          {soundToggleLabel}
         </button>
       </div>
     </div>
