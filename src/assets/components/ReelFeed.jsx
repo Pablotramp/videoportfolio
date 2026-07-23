@@ -10,14 +10,12 @@ const CENTERING_DELAY_MS = 120
 /**
  * ReelItem — single vertical HLS video that plays/pauses via IntersectionObserver.
  */
-function ReelItem({ hlsManifestUrl }) {
+function ReelItem({ hlsManifestUrl, isMuted }) {
   const videoRef = useRef(null)
   const containerRef = useRef(null)
   const wasIntersectingRef = useRef(false)
   const lastIntersectionRatioRef = useRef(0)
   const centerTimeoutRef = useRef(null)
-  const [isMuted, setIsMuted] = useState(true)
-  const soundToggleLabel = isMuted ? 'Activar sonido' : 'Silenciar'
 
   // Attach HLS source to the video element.
   useEffect(() => {
@@ -105,14 +103,6 @@ function ReelItem({ hlsManifestUrl }) {
           playsInline
           className="h-full w-full object-cover"
         />
-        <button
-          type="button"
-          onClick={() => setIsMuted((value) => !value)}
-          aria-label={soundToggleLabel}
-          className="absolute right-3 bottom-3 rounded-full bg-black/70 px-3 py-2 text-xs font-medium text-white backdrop-blur-sm"
-        >
-          {soundToggleLabel}
-        </button>
       </div>
     </div>
   )
@@ -127,13 +117,25 @@ function ReelItem({ hlsManifestUrl }) {
  * @param {{ items: Array<{ id: string, hlsManifestUrl: string }> }} props
  */
 export default function ReelFeed({ items }) {
+  const [isMuted, setIsMuted] = useState(true)
+  const soundToggleLabel = isMuted ? 'Activar sonido' : 'Silenciar'
+
   if (!Array.isArray(items) || items.length === 0) return null
 
   return (
-    <div className="w-full">
+    <div className="relative w-full">
       {items.map((item) => (
-        <ReelItem key={item.id} hlsManifestUrl={item.hlsManifestUrl} />
+        <ReelItem key={item.id} hlsManifestUrl={item.hlsManifestUrl} isMuted={isMuted} />
       ))}
+      {/* Global mute / unmute button — fixed to the bottom-right of the viewport */}
+      <button
+        type="button"
+        onClick={() => setIsMuted((value) => !value)}
+        aria-label={soundToggleLabel}
+        className="fixed right-4 bottom-[calc(var(--footer-h,41px)+1rem)] z-50 rounded-full bg-black/70 px-4 py-2 text-xs font-medium text-white backdrop-blur-sm"
+      >
+        {soundToggleLabel}
+      </button>
     </div>
   )
 }
