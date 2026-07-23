@@ -78,18 +78,27 @@ async function resolveSectionImageKey(baseUrl, section, resolver, hasListing) {
  * @returns {Record<string, string>}  Map of img filename → full public URL
  */
 function resolveImagesFromManifest(baseUrl, sections, sectionImages) {
-  const manifestKeys = Object.values(sectionImages).filter((value) => typeof value === 'string' && value.trim())
-  const resolver = createKeyResolver(manifestKeys)
   const result = {}
+  let manifestResolver = null
 
   for (const section of sections) {
     if (typeof section.img !== 'string' || !section.img.trim()) continue
     const imgName = section.img.trim()
-    const resolvedKey =
-      sectionImages[imgName] ??
-      getSectionImageCandidates(section, imgName)
-        .map((candidate) => resolver.resolveKey(candidate))
+    let resolvedKey = sectionImages[imgName]
+
+    if (!resolvedKey) {
+      // Some manifests keep the resolved bucket key under a different filename key
+      // or only expose the prefixed object path. Reuse the same candidate strategy
+      // as the live-listing path so SVG covers in `_imagenesSeccionesJson/` still load.
+      if (!manifestResolver) {
+        const manifestKeys = Object.values(sectionImages).filter((value) => typeof value === 'string' && value.trim())
+        manifestResolver = createKeyResolver(manifestKeys)
+      }
+
+      resolvedKey = getSectionImageCandidates(section, imgName)
+        .map((candidate) => manifestResolver.resolveKey(candidate))
         .find(Boolean)
+    }
 
     if (resolvedKey) {
       console.info(
