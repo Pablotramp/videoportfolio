@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Hls from 'hls.js'
 
 const HEADER_HEIGHT_PX = 64
@@ -11,6 +11,8 @@ const ITEM_HEIGHT = `calc(100dvh - ${HEADER_HEIGHT_PX}px - var(--footer-h, ${DEF
 function ReelItem({ hlsManifestUrl }) {
   const videoRef = useRef(null)
   const containerRef = useRef(null)
+  const wasIntersectingRef = useRef(false)
+  const [isMuted, setIsMuted] = useState(true)
 
   // Attach HLS source to the video element.
   useEffect(() => {
@@ -42,10 +44,15 @@ function ReelItem({ hlsManifestUrl }) {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
+          if (!wasIntersectingRef.current) {
+            container.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          }
+          wasIntersectingRef.current = true
           video.play().catch(() => {
             // Autoplay may be blocked by the browser — silently ignore.
           })
         } else {
+          wasIntersectingRef.current = false
           video.pause()
         }
       },
@@ -69,11 +76,18 @@ function ReelItem({ hlsManifestUrl }) {
       >
         <video
           ref={videoRef}
-          muted
+          muted={isMuted}
           loop
           playsInline
           className="h-full w-full object-cover"
         />
+        <button
+          type="button"
+          onClick={() => setIsMuted((value) => !value)}
+          className="absolute right-3 bottom-3 rounded-full bg-black/70 px-3 py-2 text-xs font-medium text-white backdrop-blur-sm"
+        >
+          {isMuted ? 'Activar sonido' : 'Silenciar'}
+        </button>
       </div>
     </div>
   )
