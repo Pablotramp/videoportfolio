@@ -96,6 +96,8 @@ function ReelSlide({ item, isActive, isMuted, onPlay, onPause, onEnded, slideRef
  */
 export default function ReelFeed({ items }) {
   const [activeIndex, setActiveIndex] = useState(0)
+  // activeIndexRef mirrors activeIndex so scroll/timer callbacks can read the
+  // current index without becoming stale closures that require re-registration.
   const activeIndexRef = useRef(0)
   const [isVideoPlaying, setIsVideoPlaying] = useState(false)
   const [isMuted, setIsMuted] = useState(true)
@@ -147,7 +149,8 @@ export default function ReelFeed({ items }) {
     }
   }, [itemCount, updateIndex])
 
-  // Auto-advance timer — suspended while a video is actively playing
+  // Auto-advance timer — suspended while a video is actively playing.
+  // Wraps around to slide 0 so the carousel loops continuously (same as Home.jsx).
   useEffect(() => {
     if (isVideoPlaying || itemCount <= 1) return undefined
     const timer = setInterval(() => {
@@ -165,7 +168,8 @@ export default function ReelFeed({ items }) {
     setIsVideoPlaying(false)
   }, [])
 
-  // When the active video ends, advance to the next slide immediately
+  // When the active video ends, advance to the next slide immediately.
+  // Wraps around to slide 0 after the last video (carousel loops continuously).
   const handleEnded = useCallback(() => {
     setIsVideoPlaying(false)
     const next = (activeIndexRef.current + 1) % itemCount
