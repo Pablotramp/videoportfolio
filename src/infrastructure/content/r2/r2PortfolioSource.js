@@ -77,6 +77,12 @@ function mergeManifestImageKeys(sectionImages, manifestFiles) {
   )
 }
 
+function getMappedSectionImageKey(sectionImages, imgName) {
+  if (!sectionImages || typeof sectionImages !== 'object') return ''
+  const mappedValue = sectionImages[imgName]
+  return typeof mappedValue === 'string' ? mappedValue.trim() : ''
+}
+
 /**
  * Resolve section cover images using _manifest.json.
  *
@@ -89,17 +95,14 @@ function mergeManifestImageKeys(sectionImages, manifestFiles) {
  */
 function resolveImagesFromManifest(baseUrl, sections, sectionImages, manifestFiles = []) {
   const result = {}
-  const safeSectionImages =
-    sectionImages && typeof sectionImages === 'object' ? sectionImages : {}
-  const manifestKeys = mergeManifestImageKeys(safeSectionImages, manifestFiles)
+  const manifestKeys = mergeManifestImageKeys(sectionImages, manifestFiles)
   const manifestResolver = manifestKeys.length > 0 ? createKeyResolver(manifestKeys) : null
 
   for (const section of sections) {
     if (typeof section.img !== 'string' || !section.img.trim()) continue
     const imgName = section.img.trim()
     const sectionCandidates = getSectionImageCandidates(section, imgName)
-    const directMappedKey =
-      typeof safeSectionImages[imgName] === 'string' ? safeSectionImages[imgName].trim() : ''
+    const directMappedKey = getMappedSectionImageKey(sectionImages, imgName)
     let resolvedKey = directMappedKey || null
 
     if (!resolvedKey) {
