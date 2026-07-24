@@ -33,12 +33,14 @@
 }
 
 /* Hide scrollbar on main carousel while keeping scroll/swipe functional */
-#secciones > div {
+#secciones > div,
+.reel-carousel {
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE / legacy Edge */
 }
 
-#secciones > div::-webkit-scrollbar {
+#secciones > div::-webkit-scrollbar,
+.reel-carousel::-webkit-scrollbar {
   display: none; /* Chrome, Safari, Edge (Chromium) */
 }
 

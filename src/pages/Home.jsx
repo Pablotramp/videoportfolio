@@ -205,18 +205,6 @@ function Home({ sections }) {
             : 'border-black text-black hover:bg-black hover:text-white'
           const sectionSurfaceColor =
             section.backgroundColor ?? (section.previewImage ? DEFAULT_MEDIA_BACKGROUND : undefined)
-          const mediaStyle = {
-            backgroundColor: sectionSurfaceColor,
-            ...(!imageErrored && section.previewImage
-              ? {
-                  backgroundImage: `url("${section.previewImage}")`,
-                  backgroundPosition: 'center',
-                  backgroundRepeat: 'no-repeat',
-                  backgroundSize: 'contain',
-                  backgroundOrigin: 'content-box',
-                }
-              : undefined),
-          }
 
           return (
             <article
@@ -231,20 +219,16 @@ function Home({ sections }) {
             >
               <div
                 className="section-slide__media relative z-10"
-                style={mediaStyle}
-              />
-
-              {/* Hidden image probe — fires onError when the cover image cannot load.
-                  Only rendered when SECTION_IMAGE_DEBUG is enabled. */}
-              {SECTION_IMAGE_DEBUG && section.hasConfiguredImage && section.image && !imageErrored && (
-                <img
-                  src={section.image}
-                  alt=""
-                  aria-hidden="true"
-                  className="pointer-events-none absolute opacity-0"
-                  onError={() => handleImageError(section.entryName)}
-                />
-              )}
+                style={{ backgroundColor: sectionSurfaceColor }}
+              >
+                {!imageErrored && section.previewImage && (
+                  <img
+                    src={section.previewImage}
+                    alt={section.name}
+                    onError={SECTION_IMAGE_DEBUG ? () => handleImageError(section.entryName) : undefined}
+                  />
+                )}
+              </div>
 
               {/* Debug fallback — shown instead of the cover image when it fails to load
                   and SECTION_IMAGE_DEBUG is enabled. Contains sensitive data; keep disabled
