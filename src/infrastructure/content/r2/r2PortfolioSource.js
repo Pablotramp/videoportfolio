@@ -5,19 +5,8 @@ import {
   toObjectUrl,
 } from './r2Utils.js'
 
-function getSectionImageCandidates(section, imgName) {
-  const folder =
-    (typeof section.folder === 'string' && section.folder.trim().replace(/^\/+|\/+$/g, '')) ||
-    (typeof section.video === 'string' &&
-      !/\.[a-z0-9]+$/i.test(section.video.trim()) &&
-      section.video.trim().replace(/^\/+|\/+$/g, '')) ||
-    ''
-
-  return [
-    imgName,
-    `_imagenesSeccionesJson/${imgName}`,
-    folder ? `${folder}/${imgName}` : null,
-  ].filter((candidate, index, candidates) => candidate && candidates.indexOf(candidate) === index)
+function getSectionImageCandidates(_section, imgName) {
+  return [imgName]
 }
 
 async function canProbeObject(url) {
