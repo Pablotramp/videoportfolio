@@ -16,6 +16,15 @@ const BREADCRUMBS_STYLE = {
   transform: 'translateX(-50%)',
 }
 
+/**
+ * Debug switch — set to `true` to enable the image-error fallback panel.
+ *
+ * When enabled, any section that has an image configured in _estructura.json
+ * but fails to load will show the Section object's debug data in place of
+ * the cover image.  Keep set to `false` in production (contains sensitive data).
+ */
+const SECTION_IMAGE_DEBUG = false
+
 function Home({ sections }) {
   const sliderRef = useRef(null)
   const slideRefs = useRef([])
@@ -25,8 +34,13 @@ function Home({ sections }) {
   const interactionTimerRef = useRef(null)
   const wheelLockedRef = useRef(false)
   const wheelTimerRef = useRef(null)
+  const [failedImages, setFailedImages] = useState(() => new Set())
 
   const sectionCount = sections.length
+
+  const handleImageError = useCallback((entryName) => {
+    setFailedImages((previous) => new Set([...previous, entryName]))
+  }, [])
 
   const updateIndex = useCallback((index) => {
     activeIndexRef.current = index
@@ -183,6 +197,7 @@ function Home({ sections }) {
         style={SLIDE_HEIGHT_STYLE}
       >
         {sections.map((section, index) => {
+          const imageErrored = SECTION_IMAGE_DEBUG && section.hasConfiguredImage && failedImages.has(section.entryName)
           const hasBackground = Boolean(section.previewImage || section.backgroundColor)
           const overlayTextClass = hasBackground ? 'text-white' : 'text-zinc-950'
           const openButtonClass = hasBackground
@@ -192,7 +207,7 @@ function Home({ sections }) {
             section.backgroundColor ?? (section.previewImage ? DEFAULT_MEDIA_BACKGROUND : undefined)
           const mediaStyle = {
             backgroundColor: sectionSurfaceColor,
-            ...(section.previewImage
+            ...(!imageErrored && section.previewImage
               ? {
                   backgroundImage: `url("${section.previewImage}")`,
                   backgroundPosition: 'center',
@@ -218,6 +233,38 @@ function Home({ sections }) {
                 className="section-slide__media relative z-10"
                 style={mediaStyle}
               />
+
+              {/* Hidden image probe — fires onError when the cover image cannot load.
+                  Only rendered when SECTION_IMAGE_DEBUG is enabled. */}
+              {SECTION_IMAGE_DEBUG && section.hasConfiguredImage && section.image && !imageErrored && (
+                <img
+                  src={section.image}
+                  alt=""
+                  aria-hidden="true"
+                  className="pointer-events-none absolute opacity-0"
+                  onError={() => handleImageError(section.entryName)}
+                />
+              )}
+
+              {/* Debug fallback — shown instead of the cover image when it fails to load
+                  and SECTION_IMAGE_DEBUG is enabled. Contains sensitive data; keep disabled
+                  in production (set SECTION_IMAGE_DEBUG = false). */}
+              {imageErrored && (
+                <div className="absolute inset-0 z-10 overflow-auto bg-black/80 p-4 font-mono text-xs text-green-400">
+                  <p className="mb-2 text-yellow-300 uppercase tracking-widest">
+                    ⚠ imagen no cargada — objeto Section
+                  </p>
+                  <pre className="whitespace-pre-wrap break-all">
+                    {JSON.stringify(
+                      typeof section.toDebugInfo === 'function'
+                        ? section.toDebugInfo()
+                        : section,
+                      null,
+                      2,
+                    )}
+                  </pre>
+                </div>
+              )}
 
               {/* Click-navigation overlay — sits below the CTA so links remain clickable */}
               <div
