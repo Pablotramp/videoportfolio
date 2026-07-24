@@ -44,7 +44,7 @@ function App() {
         <p className="m-0 text-xs uppercase tracking-[0.22em] text-zinc-500">Error</p>
         <h1 className="m-0 font-serif text-4xl font-semibold">No se pudo cargar el portfolio</h1>
         <p className="m-0 text-zinc-700">
-          {portfolio.error.message || 'Revisa la variable VITE_R2_PUBLIC_URL en .env.local e inténtalo de nuevo.'}
+          {portfolio.error.message || 'Revisa la variable VITE_R2_PUBLIC_URL y asegúrate de que apunte al dominio público del bucket de contenido.'}
         </p>
       </section>
     )

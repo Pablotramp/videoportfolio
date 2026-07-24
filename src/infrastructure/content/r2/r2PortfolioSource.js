@@ -151,6 +151,100 @@ function createR2ConfigError() {
   )
 }
 
+function normalizeHostname(hostname = '') {
+  return hostname.trim().toLowerCase().replace(/^www\./, '')
+}
+
+function isRecoverableFetchError(error) {
+  const message = error instanceof Error ? error.message : String(error ?? '')
+  return error instanceof TypeError || /failed to fetch|networkerror/i.test(message)
+}
+
+function getBaseUrlCandidates(baseUrl) {
+  const candidates = [baseUrl]
+
+  if (typeof window === 'undefined' || !window.location?.origin) {
+    return candidates
+  }
+
+  try {
+    const configuredUrl = new URL(baseUrl)
+    const currentUrl = new URL(window.location.origin)
+    const sameHost = normalizeHostname(configuredUrl.hostname) === normalizeHostname(currentUrl.hostname)
+
+    if (!sameHost) {
+      return candidates
+    }
+
+    const configuredPath = configuredUrl.pathname.replace(/\/$/, '')
+    const fallbackBaseUrl = `${currentUrl.origin}${configuredPath}`.replace(/\/$/, '')
+
+    if (!candidates.includes(fallbackBaseUrl)) {
+      candidates.push(fallbackBaseUrl)
+    }
+  } catch {
+    return candidates
+  }
+
+  return candidates
+}
+
+function createContentFetchError(label, attemptedUrls, originalError) {
+  const attempts = attemptedUrls.join(' o ')
+  const detail =
+    originalError instanceof Error && originalError.message
+      ? ` Detalle original: ${originalError.message}`
+      : ''
+
+  return new Error(
+    `No se pudo acceder a ${label} en ${attempts}. Verifica que el dominio apunte al bucket público del contenido, responda por HTTPS y permita peticiones desde el navegador.${detail}`,
+  )
+}
+
+async function fetchRequiredJsonWithFallback(baseUrl, fileName) {
+  const candidateBaseUrls = getBaseUrlCandidates(baseUrl)
+  let lastError = null
+
+  for (const candidateBaseUrl of candidateBaseUrls) {
+    try {
+      return {
+        data: await fetchJson(`${candidateBaseUrl}/${fileName}`, fileName),
+        resolvedBaseUrl: candidateBaseUrl,
+      }
+    } catch (error) {
+      lastError = error
+      if (!isRecoverableFetchError(error)) {
+        throw error
+      }
+    }
+  }
+
+  throw createContentFetchError(
+    fileName,
+    candidateBaseUrls.map((candidateBaseUrl) => `${candidateBaseUrl}/${fileName}`),
+    lastError,
+  )
+}
+
+async function fetchOptionalJsonWithFallback(baseUrl, fileName) {
+  const candidateBaseUrls = getBaseUrlCandidates(baseUrl)
+
+  for (const candidateBaseUrl of candidateBaseUrls) {
+    try {
+      return {
+        data: await fetchJson(`${candidateBaseUrl}/${fileName}`, fileName),
+        resolvedBaseUrl: candidateBaseUrl,
+      }
+    } catch (error) {
+      if (!isRecoverableFetchError(error)) {
+        throw error
+      }
+    }
+  }
+
+  return null
+}
+
 /**
  * Normalize a public bucket URL, defaulting to HTTPS when the protocol is omitted.
  * Existing HTTP/HTTPS URLs are preserved to support local/dev bucket proxies.
@@ -231,17 +325,27 @@ export function createR2PortfolioSource(config = {}) {
       }
 
       const normalizedPublicUrl = normalizePublicUrl(publicUrl)
-      const baseUrl = normalizedPublicUrl.replace(/\/$/, '')
+      let baseUrl = normalizedPublicUrl.replace(/\/$/, '')
 
-      const estructuraJson = await fetchJson(`${baseUrl}/_estructura.json`, '_estructura.json')
+      const estructuraResult = await fetchRequiredJsonWithFallback(baseUrl, '_estructura.json')
+      const estructuraJson = estructuraResult.data
+      baseUrl = estructuraResult.resolvedBaseUrl
 
       const sections = Array.isArray(estructuraJson.sections) ? estructuraJson.sections : []
 
       // ── Try _manifest.json first ────────────────────────────────────────────
       let manifest = null
       try {
-        manifest = await fetchJson(`${baseUrl}/_manifest.json`, '_manifest.json')
-        console.info('[r2:manifest] _manifest.json cargado correctamente.')
+        const manifestResult = await fetchOptionalJsonWithFallback(baseUrl, '_manifest.json')
+        if (manifestResult) {
+          manifest = manifestResult.data
+          baseUrl = manifestResult.resolvedBaseUrl
+          console.info('[r2:manifest] _manifest.json cargado correctamente.')
+        } else {
+          console.info(
+            '[r2:manifest] _manifest.json no disponible. Usando descubrimiento por listado de bucket (?list-type=2).',
+          )
+        }
       } catch {
         console.info(
           '[r2:manifest] _manifest.json no disponible. Usando descubrimiento por listado de bucket (?list-type=2).',

@@ -22,6 +22,7 @@ Portfolio frontend en React + Vite que consume contenido desde Cloudflare R2.
    - **Build output directory**: `dist`
 8. En tu proyecto de Pages, abre **Settings** → **Environment variables** y agrega:
    - `VITE_R2_PUBLIC_URL` = URL pública real de tu bucket R2 (por ejemplo `https://pub-XXXX.r2.dev` o tu dominio de media).
+   - Usa el dominio que sirve `_estructura.json`, `_manifest.json` y los archivos del bucket. **No** uses aquí el dominio del frontend si apunta a Cloudflare Pages en vez del bucket.
 9. Ejecuta el deploy.
 10. En **Custom domains**, conecta tu dominio comprado (raíz o `www`).
 11. Espera propagación DNS/SSL y prueba la URL pública final.
