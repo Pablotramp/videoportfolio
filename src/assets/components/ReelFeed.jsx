@@ -104,6 +104,7 @@ export default function ReelFeed({ items }) {
   const activeIndexRef = useRef(0)
   const [isVideoPlaying, setIsVideoPlaying] = useState(false)
   const [isMuted, setIsMuted] = useState(true)
+  const [supportsFinePointer, setSupportsFinePointer] = useState(false)
 
   const sliderRef = useRef(null)
   const slideRefs = useRef([])
@@ -169,6 +170,11 @@ export default function ReelFeed({ items }) {
   )
 
   // Track active slide from horizontal scroll position
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
+    setSupportsFinePointer(window.matchMedia('(hover: hover) and (pointer: fine)').matches)
+  }, [])
+
   useEffect(() => {
     const slider = sliderRef.current
     if (!slider || itemCount === 0) return undefined
@@ -253,7 +259,7 @@ export default function ReelFeed({ items }) {
   }, [itemCount, scrollToIndex])
 
   const handlePointerDown = useCallback((event) => {
-    if (event.pointerType !== 'mouse' || event.button !== PRIMARY_MOUSE_BUTTON) return
+    if (event.pointerType === 'mouse' && event.button !== PRIMARY_MOUSE_BUTTON) return
     const slider = sliderRef.current
     if (!slider) return
     dragStateRef.current = {
@@ -295,7 +301,9 @@ export default function ReelFeed({ items }) {
       {/* Horizontal scrollable carousel */}
       <div
         ref={sliderRef}
-        className="reel-carousel flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden scroll-smooth touch-pan-x cursor-grab active:cursor-grabbing"
+        className={`reel-carousel flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden scroll-smooth touch-pan-x ${
+          supportsFinePointer ? 'cursor-grab active:cursor-grabbing' : ''
+        }`}
         style={SLIDE_HEIGHT_STYLE}
         role="region"
         aria-label="Carrusel de videos"

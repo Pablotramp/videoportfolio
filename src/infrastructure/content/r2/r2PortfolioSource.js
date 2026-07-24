@@ -15,6 +15,7 @@ function getSectionImageCandidates(_section, imgName) {
   const hasExtension = dotIndex > 0
   const baseName = hasExtension ? trimmed.slice(0, dotIndex) : trimmed
   const extension = hasExtension ? trimmed.slice(dotIndex + 1) : ''
+  const normalizedExtension = extension.toLowerCase()
   const candidates = new Set(hasExtension ? [trimmed] : [])
 
   const baseVariants = [
@@ -24,7 +25,12 @@ function getSectionImageCandidates(_section, imgName) {
   ].filter(Boolean)
 
   const extensionVariants = hasExtension
-    ? [extension, extension.toLowerCase(), extension.toUpperCase()]
+    ? [
+      extension,
+      normalizedExtension,
+      normalizedExtension.toUpperCase(),
+      normalizedExtension.charAt(0).toUpperCase() + normalizedExtension.slice(1),
+    ]
     : COVER_IMAGE_EXTENSIONS
 
   for (const baseVariant of baseVariants) {
