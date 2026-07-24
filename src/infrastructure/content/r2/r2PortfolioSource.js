@@ -15,7 +15,7 @@ function getSectionImageCandidates(_section, imgName) {
   const hasExtension = dotIndex > 0
   const baseName = hasExtension ? trimmed.slice(0, dotIndex) : trimmed
   const extension = hasExtension ? trimmed.slice(dotIndex + 1) : ''
-  const candidates = new Set([trimmed])
+  const candidates = new Set(hasExtension ? [trimmed] : [])
 
   const baseVariants = [
     baseName,

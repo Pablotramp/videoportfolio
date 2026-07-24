@@ -94,7 +94,8 @@ function AudioPlayerPlaceholder({
         const json = await response.json()
         const resolvedTitle = getTrimmedString(json?.title) || null
         if (!cancelled) setMetadataTitle(resolvedTitle)
-      } catch {
+      } catch (error) {
+        console.warn('[audio:metadata] No se pudo cargar la metadata de título.', error)
         if (!cancelled) setMetadataTitle(null)
       }
     }
@@ -126,7 +127,7 @@ function AudioPlayerPlaceholder({
       aria-label={accessibilityLabel}
       onClick={!isActive ? onActivate : undefined}
     >
-      {subtitle && <p className="m-0 text-center text-sm font-medium leading-snug text-zinc-700">{subtitle}</p>}
+      {subtitle && <h3 className="m-0 text-center text-sm font-medium leading-snug text-zinc-700">{subtitle}</h3>}
 
       {coverUrl && (
         <img

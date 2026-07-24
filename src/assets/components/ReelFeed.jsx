@@ -290,6 +290,9 @@ export default function ReelFeed({ items }) {
         ref={sliderRef}
         className="reel-carousel flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden scroll-smooth touch-pan-x cursor-grab active:cursor-grabbing"
         style={SLIDE_HEIGHT_STYLE}
+        role="region"
+        aria-label="Carrusel de videos"
+        aria-live="polite"
         tabIndex={0}
         onKeyDown={handleKeyboardNavigation}
         onPointerDown={handlePointerDown}
