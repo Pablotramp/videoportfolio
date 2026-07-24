@@ -68,7 +68,7 @@ function AudioPlayerPlaceholder({ itemId, audioUrl, audioKey, coverUrl, isActive
 
   return (
     <div
-      className={`grid gap-3 rounded border border-black/20 bg-white/80 p-4 text-zinc-800 transition-transform duration-300 ${
+      className={`grid gap-3 rounded border border-black/20 bg-white/80 p-4 text-zinc-800 transition-transform duration-300 w-fit min-w-[220px] max-w-[400px] ${
         isPlaying ? 'relative z-10 scale-[1.04]' : 'scale-100'
       } ${!isActive ? 'cursor-pointer' : ''}`}
       aria-label={`Audio: ${displayName}`}
@@ -78,8 +78,7 @@ function AudioPlayerPlaceholder({ itemId, audioUrl, audioKey, coverUrl, isActive
         <img
           src={coverUrl}
           alt={displayName}
-          className="w-full rounded object-cover"
-          style={{ aspectRatio: '1 / 1' }}
+          className="block max-w-full max-h-[400px] w-auto h-auto rounded"
           loading="lazy"
         />
       )}

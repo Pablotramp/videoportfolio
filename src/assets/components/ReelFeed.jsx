@@ -1,167 +1,283 @@
-import { forwardRef, useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Hls from 'hls.js'
 
 const HEADER_HEIGHT_PX = 64
 const DEFAULT_FOOTER_HEIGHT_PX = 41
-const ITEM_HEIGHT = `calc(100dvh - ${HEADER_HEIGHT_PX}px - var(--footer-h, ${DEFAULT_FOOTER_HEIGHT_PX}px))`
-const CENTERING_VISIBILITY_THRESHOLD = 0.75
-const CENTERING_DELAY_MS = 120
+const SLIDE_HEIGHT = `calc(100dvh - ${HEADER_HEIGHT_PX}px - var(--footer-h, ${DEFAULT_FOOTER_HEIGHT_PX}px))`
+const SLIDE_HEIGHT_STYLE = { height: SLIDE_HEIGHT }
+const AUTO_ADVANCE_MS = 5000
+
+const BREADCRUMBS_STYLE = {
+  bottom: 'calc(env(safe-area-inset-bottom, 0px) + var(--footer-h, 41px) + 0.75rem)',
+  left: '50%',
+  transform: 'translateX(-50%)',
+}
 
 /**
- * ReelItem — single vertical HLS video that plays/pauses via IntersectionObserver.
+ * ReelSlide — single reel video slide managing its own HLS instance.
  *
- * When the video ends the `onEnded` callback is fired so the parent can advance
- * to the next item. When the item leaves the viewport the video is paused and
- * its position is reset to the beginning.
+ * Plays when `isActive` is true; pauses and resets when false.
+ * Fires `onPlay` / `onPause` / `onEnded` to let the parent track playback state.
  */
-const ReelItem = forwardRef(function ReelItem({ hlsManifestUrl, isMuted, onEnded }, forwardedRef) {
+function ReelSlide({ item, isActive, isMuted, onPlay, onPause, onEnded, slideRef }) {
   const videoRef = useRef(null)
-  const containerRef = useRef(null)
-  const wasIntersectingRef = useRef(false)
-  const centerTimeoutRef = useRef(null)
 
-  // Merge forwarded ref (used by ReelFeed for programmatic scrolling) with the
-  // local ref needed by the IntersectionObserver.
-  function setContainerRef(node) {
-    containerRef.current = node
-    if (typeof forwardedRef === 'function') forwardedRef(node)
-    else if (forwardedRef) forwardedRef.current = node
-  }
-
-  // Attach HLS source to the video element.
+  // Attach HLS source once
   useEffect(() => {
     const video = videoRef.current
-    if (!video || !hlsManifestUrl) return
+    if (!video || !item.hlsManifestUrl) return
 
     let hls = null
-
     if (Hls.isSupported()) {
       hls = new Hls()
-      hls.loadSource(hlsManifestUrl)
+      hls.loadSource(item.hlsManifestUrl)
       hls.attachMedia(video)
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       // Safari native HLS
-      video.src = hlsManifestUrl
+      video.src = item.hlsManifestUrl
     }
 
     return () => {
       if (hls) hls.destroy()
     }
-  }, [hlsManifestUrl])
+  }, [item.hlsManifestUrl])
 
+  // Sync muted state
+  useEffect(() => {
+    const video = videoRef.current
+    if (video) video.muted = isMuted
+  }, [isMuted])
+
+  // Play / pause + reset based on whether this slide is the active one
   useEffect(() => {
     const video = videoRef.current
     if (!video) return
-    video.muted = isMuted
-  }, [isMuted])
-
-  // Play when ≥50 % of the item is visible; pause + reset when it leaves.
-  useEffect(() => {
-    const video = videoRef.current
-    const container = containerRef.current
-    if (!video || !container) return
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          if (!wasIntersectingRef.current) {
-            // Capture stable values now; do not read mutable refs inside the callback.
-            const snapshotContainer = container
-            const snapshotRatio = entry.intersectionRatio
-            centerTimeoutRef.current = window.setTimeout(() => {
-              if (!wasIntersectingRef.current) return
-              if (snapshotRatio >= CENTERING_VISIBILITY_THRESHOLD) {
-                snapshotContainer.scrollIntoView({ behavior: 'smooth', block: 'center' })
-              }
-            }, CENTERING_DELAY_MS)
-          }
-          wasIntersectingRef.current = true
-          video.play().catch(() => {
-            // Autoplay may be blocked by the browser — silently ignore.
-          })
-        } else {
-          if (centerTimeoutRef.current) {
-            clearTimeout(centerTimeoutRef.current)
-            centerTimeoutRef.current = null
-          }
-          wasIntersectingRef.current = false
-          video.pause()
-          // Reset playback position so the next visit starts from the beginning.
-          video.currentTime = 0
-        }
-      },
-      { threshold: 0.5 },
-    )
-
-    observer.observe(container)
-    return () => {
-      if (centerTimeoutRef.current) clearTimeout(centerTimeoutRef.current)
-      observer.disconnect()
+    if (isActive) {
+      video.play().catch(() => {
+        // Autoplay may be blocked by the browser — silently ignore.
+      })
+    } else {
+      video.pause()
+      video.currentTime = 0
     }
-  }, [])
+  }, [isActive])
 
   return (
     <div
-      ref={setContainerRef}
-      className="relative flex w-full items-center justify-center bg-black"
-      style={{ height: ITEM_HEIGHT }}
+      ref={slideRef}
+      className="relative flex min-w-full snap-start items-center justify-center bg-black"
+      style={SLIDE_HEIGHT_STYLE}
     >
       {/* 9:16 column centred inside the row */}
-      <div
-        className="relative h-full overflow-hidden"
-        style={{ aspectRatio: '9 / 16' }}
-      >
+      <div className="relative h-full overflow-hidden" style={{ aspectRatio: '9 / 16' }}>
         <video
           ref={videoRef}
           playsInline
-          onEnded={onEnded}
           className="h-full w-full object-cover"
+          onPlay={onPlay}
+          onPause={onPause}
+          onEnded={onEnded}
         />
       </div>
     </div>
   )
-})
+}
 
 /**
- * ReelFeed — vertical scrolling feed of 9:16 HLS videos.
+ * ReelFeed — horizontal carousel of 9:16 HLS videos.
  *
- * Each video autoplays when it enters the viewport (≥50 % visible) and
- * pauses + resets when it leaves. Videos do NOT loop — when one finishes
- * the feed automatically scrolls to the next item. The user can also scroll
- * manually at any time.
+ * Only one video plays at a time. Behaviour:
+ *  - Switching slides pauses and resets the previous video.
+ *  - When the active video ends, the carousel automatically advances to the next slide.
+ *  - While a video is actively playing, the automatic timer is suspended.
+ *  - Manual navigation (arrows, dots, swipe) always works regardless of playback state.
  *
  * @param {{ items: Array<{ id: string, hlsManifestUrl: string }> }} props
  */
 export default function ReelFeed({ items }) {
+  const [activeIndex, setActiveIndex] = useState(0)
+  // activeIndexRef mirrors activeIndex so scroll/timer callbacks can read the
+  // current index without becoming stale closures that require re-registration.
+  const activeIndexRef = useRef(0)
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false)
   const [isMuted, setIsMuted] = useState(true)
-  const itemRefs = useRef([])
+
+  const sliderRef = useRef(null)
+  const slideRefs = useRef([])
+
+  const itemCount = Array.isArray(items) ? items.length : 0
   const soundToggleLabel = isMuted ? 'Activar sonido' : 'Silenciar'
 
-  const handleEnded = useCallback(
+  const updateIndex = useCallback((index) => {
+    activeIndexRef.current = index
+    setActiveIndex(index)
+  }, [])
+
+  const scrollToIndex = useCallback(
     (index) => {
-      const nextIndex = index + 1
-      if (nextIndex < items.length) {
-        itemRefs.current[nextIndex]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      }
+      if (itemCount === 0) return
+      const safeIndex = Math.min(Math.max(index, 0), itemCount - 1)
+      slideRefs.current[safeIndex]?.scrollIntoView({
+        behavior: 'smooth',
+        inline: 'start',
+        block: 'nearest',
+      })
+      updateIndex(safeIndex)
     },
-    [items.length],
+    [itemCount, updateIndex],
   )
+
+  // Track active slide from horizontal scroll position
+  useEffect(() => {
+    const slider = sliderRef.current
+    if (!slider || itemCount === 0) return undefined
+
+    let raf = 0
+    const onScroll = () => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(() => {
+        const width = slider.clientWidth || 1
+        const index = Math.round(slider.scrollLeft / width)
+        updateIndex(Math.max(0, Math.min(index, itemCount - 1)))
+      })
+    }
+
+    slider.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      slider.removeEventListener('scroll', onScroll)
+      cancelAnimationFrame(raf)
+    }
+  }, [itemCount, updateIndex])
+
+  // Auto-advance timer — suspended while a video is actively playing.
+  // Wraps around to slide 0 so the carousel loops continuously (same as Home.jsx).
+  useEffect(() => {
+    if (isVideoPlaying || itemCount <= 1) return undefined
+    const timer = setInterval(() => {
+      const next = (activeIndexRef.current + 1) % itemCount
+      scrollToIndex(next)
+    }, AUTO_ADVANCE_MS)
+    return () => clearInterval(timer)
+  }, [isVideoPlaying, itemCount, scrollToIndex])
+
+  const handlePlay = useCallback(() => {
+    setIsVideoPlaying(true)
+  }, [])
+
+  const handlePause = useCallback(() => {
+    setIsVideoPlaying(false)
+  }, [])
+
+  // When the active video ends, advance to the next slide immediately.
+  // Wraps around to slide 0 after the last video (carousel loops continuously).
+  const handleEnded = useCallback(() => {
+    setIsVideoPlaying(false)
+    const next = (activeIndexRef.current + 1) % itemCount
+    scrollToIndex(next)
+  }, [itemCount, scrollToIndex])
 
   if (!Array.isArray(items) || items.length === 0) return null
 
   return (
     <div className="relative w-full">
-      {items.map((item, index) => (
-        <ReelItem
-          key={item.id}
-          ref={(node) => {
-            itemRefs.current[index] = node
-          }}
-          hlsManifestUrl={item.hlsManifestUrl}
-          isMuted={isMuted}
-          onEnded={() => handleEnded(index)}
-        />
-      ))}
+      {/* Horizontal scrollable carousel */}
+      <div
+        ref={sliderRef}
+        className="reel-carousel flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden scroll-smooth touch-pan-x"
+        style={SLIDE_HEIGHT_STYLE}
+      >
+        {items.map((item, index) => (
+          <ReelSlide
+            key={item.id}
+            slideRef={(node) => {
+              slideRefs.current[index] = node
+            }}
+            item={item}
+            isActive={index === activeIndex}
+            isMuted={isMuted}
+            onPlay={handlePlay}
+            onPause={handlePause}
+            onEnded={handleEnded}
+          />
+        ))}
+      </div>
+
+      {/* Previous arrow */}
+      {activeIndex > 0 && (
+        <button
+          type="button"
+          onClick={() => scrollToIndex(activeIndex - 1)}
+          aria-label="Video anterior"
+          className="absolute left-4 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-black/70 text-white backdrop-blur-sm transition hover:bg-black/90"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-4 w-4"
+            aria-hidden="true"
+          >
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </button>
+      )}
+
+      {/* Next arrow */}
+      {activeIndex < itemCount - 1 && (
+        <button
+          type="button"
+          onClick={() => scrollToIndex(activeIndex + 1)}
+          aria-label="Video siguiente"
+          className="absolute right-4 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-black/70 text-white backdrop-blur-sm transition hover:bg-black/90"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-4 w-4"
+            aria-hidden="true"
+          >
+            <path d="M9 18l6-6-6-6" />
+          </svg>
+        </button>
+      )}
+
+      {/* Dot indicators */}
+      {itemCount > 1 && (
+        <nav
+          className="pointer-events-none absolute z-20 flex justify-center"
+          aria-label="Paginación de videos"
+          style={BREADCRUMBS_STYLE}
+        >
+          <ul className="pointer-events-auto m-0 flex list-none items-center gap-2 rounded-full bg-black/40 px-3 py-2">
+            {items.map((item, index) => {
+              const isActive = index === activeIndex
+              return (
+                <li key={item.id}>
+                  <button
+                    type="button"
+                    className={`h-2.5 w-2.5 rounded-full border transition ${
+                      isActive ? 'border-white bg-white' : 'border-white/50 bg-transparent'
+                    }`}
+                    aria-label={`Ir al video ${index + 1}`}
+                    aria-current={isActive ? 'step' : undefined}
+                    onClick={() => scrollToIndex(index)}
+                  />
+                </li>
+              )
+            })}
+          </ul>
+        </nav>
+      )}
+
       {/* Global mute / unmute button — fixed to the bottom-right of the viewport */}
       <button
         type="button"
