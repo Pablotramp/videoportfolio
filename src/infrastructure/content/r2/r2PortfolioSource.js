@@ -70,7 +70,9 @@ async function resolveSectionImageKey(baseUrl, section, resolver, hasListing) {
 }
 
 function mergeManifestImageKeys(sectionImages, manifestFiles) {
-  return [...new Set([...Object.values(sectionImages), ...manifestFiles])].filter(
+  const safeSectionImages =
+    sectionImages && typeof sectionImages === 'object' ? sectionImages : {}
+  return [...new Set([...Object.values(safeSectionImages), ...manifestFiles])].filter(
     (value) => typeof value === 'string' && value.trim(),
   )
 }
@@ -102,7 +104,7 @@ function resolveImagesFromManifest(baseUrl, sections, sectionImages, manifestFil
 
     if (!resolvedKey) {
       resolvedKey = sectionCandidates
-        .map((candidate) => manifestResolver?.resolveKey(candidate) ?? null)
+        .map((candidate) => manifestResolver?.resolveKey(candidate))
         .find(Boolean)
     }
 
