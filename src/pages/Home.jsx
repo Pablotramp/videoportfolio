@@ -23,7 +23,7 @@ const BREADCRUMBS_STYLE = {
  * but fails to load will show the Section object's debug data in place of
  * the cover image.  Keep set to `false` in production (contains sensitive data).
  */
-const SECTION_IMAGE_DEBUG = true
+const SECTION_IMAGE_DEBUG = false
 
 function Home({ sections }) {
   const sliderRef = useRef(null)
