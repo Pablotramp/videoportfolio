@@ -106,7 +106,7 @@ export class Content {
 
       default:
         return new Content({
-          type: item.itemType ?? 'unknown',
+          type: ContentType.VIDEO,
           entry: [],
         })
     }
