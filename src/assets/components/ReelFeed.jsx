@@ -98,13 +98,18 @@ function ReelSlide({ item, isActive, isMuted, onPlay, onPause, onEnded, slideRef
  * @param {{ items: Array<{ id: string, hlsManifestUrl: string }> }} props
  */
 export default function ReelFeed({ items }) {
+  const supportsFinePointerDefault =
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(hover: hover) and (pointer: fine)').matches
+
   const [activeIndex, setActiveIndex] = useState(0)
   // activeIndexRef mirrors activeIndex so scroll/timer callbacks can read the
   // current index without becoming stale closures that require re-registration.
   const activeIndexRef = useRef(0)
   const [isVideoPlaying, setIsVideoPlaying] = useState(false)
   const [isMuted, setIsMuted] = useState(true)
-  const [supportsFinePointer, setSupportsFinePointer] = useState(false)
+  const [supportsFinePointer] = useState(supportsFinePointerDefault)
 
   const sliderRef = useRef(null)
   const slideRefs = useRef([])
@@ -168,12 +173,6 @@ export default function ReelFeed({ items }) {
     },
     [itemCount, scrollToIndex],
   )
-
-  // Track active slide from horizontal scroll position
-  useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
-    setSupportsFinePointer(window.matchMedia('(hover: hover) and (pointer: fine)').matches)
-  }, [])
 
   useEffect(() => {
     const slider = sliderRef.current
