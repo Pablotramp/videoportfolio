@@ -151,15 +151,36 @@ function createR2ConfigError() {
   )
 }
 
+/**
+ * Normalize hostnames for comparisons, ignoring a leading www. prefix.
+ *
+ * @param {string} hostname
+ * @returns {string}
+ */
 function normalizeHostname(hostname = '') {
   return hostname.trim().toLowerCase().replace(/^www\./, '')
 }
 
+/**
+ * Decide whether a fetch failure is worth retrying against an equivalent URL.
+ * Network-level failures (including the browser's generic "Failed to fetch")
+ * are treated as recoverable because they may come from a www/apex mismatch.
+ *
+ * @param {unknown} error
+ * @returns {boolean}
+ */
 function isRecoverableFetchError(error) {
   const message = error instanceof Error ? error.message : String(error ?? '')
   return error instanceof TypeError || /failed to fetch|networkerror/i.test(message)
 }
 
+/**
+ * Build candidate base URLs for content fetches, adding the current origin when
+ * it matches the configured hostname except for a leading www. prefix.
+ *
+ * @param {string} baseUrl
+ * @returns {string[]}
+ */
 function getBaseUrlCandidates(baseUrl) {
   const candidates = [baseUrl]
 
@@ -189,6 +210,15 @@ function getBaseUrlCandidates(baseUrl) {
   return candidates
 }
 
+/**
+ * Create an actionable error for required JSON files after every candidate URL
+ * has failed, including the attempted URLs and the original fetch detail.
+ *
+ * @param {string} label
+ * @param {string[]} attemptedUrls
+ * @param {unknown} originalError
+ * @returns {Error}
+ */
 function createContentFetchError(label, attemptedUrls, originalError) {
   const attempts = attemptedUrls.join(' o ')
   const detail =
@@ -201,6 +231,14 @@ function createContentFetchError(label, attemptedUrls, originalError) {
   )
 }
 
+/**
+ * Fetch a required JSON file by trying each equivalent base URL candidate until
+ * one succeeds. Throws an actionable error when every candidate fails.
+ *
+ * @param {string} baseUrl
+ * @param {string} fileName
+ * @returns {Promise<{ data: object, resolvedBaseUrl: string }>}
+ */
 async function fetchRequiredJsonWithFallback(baseUrl, fileName) {
   const candidateBaseUrls = getBaseUrlCandidates(baseUrl)
   let lastError = null
@@ -226,6 +264,14 @@ async function fetchRequiredJsonWithFallback(baseUrl, fileName) {
   )
 }
 
+/**
+ * Fetch an optional JSON file by trying each equivalent base URL candidate.
+ * Returns null when every candidate fails with a recoverable network error.
+ *
+ * @param {string} baseUrl
+ * @param {string} fileName
+ * @returns {Promise<{ data: object, resolvedBaseUrl: string } | null>}
+ */
 async function fetchOptionalJsonWithFallback(baseUrl, fileName) {
   const candidateBaseUrls = getBaseUrlCandidates(baseUrl)
 
