@@ -152,6 +152,155 @@ function createR2ConfigError() {
 }
 
 /**
+ * Normalize hostnames for comparisons, ignoring a leading www. prefix.
+ *
+ * @param {string} hostname
+ * @returns {string}
+ */
+function normalizeHostname(hostname = '') {
+  return hostname.trim().toLowerCase().replace(/^www\./, '')
+}
+
+/**
+ * Decide whether a fetch failure is worth retrying against an equivalent URL.
+ * Network-level failures (including the browser's generic "Failed to fetch")
+ * are treated as recoverable because they may come from a www/apex mismatch.
+ *
+ * @param {unknown} error
+ * @returns {boolean}
+ */
+function isRecoverableFetchError(error) {
+  const message = error instanceof Error ? error.message : String(error ?? '')
+  return error instanceof TypeError || /failed to fetch|network\s*error/i.test(message)
+}
+
+/**
+ * Build candidate base URLs for content fetches, adding the current origin when
+ * it matches the configured hostname except for a leading www. prefix.
+ *
+ * @param {string} baseUrl
+ * @returns {string[]}
+ */
+function getBaseUrlCandidates(baseUrl) {
+  const candidates = [baseUrl]
+
+  if (typeof window === 'undefined' || !window.location?.origin) {
+    return candidates
+  }
+
+  try {
+    const configuredUrl = new URL(baseUrl)
+    const currentUrl = new URL(window.location.origin)
+    const sameHost = normalizeHostname(configuredUrl.hostname) === normalizeHostname(currentUrl.hostname)
+
+    if (!sameHost) {
+      return candidates
+    }
+
+    const configuredPath = configuredUrl.pathname.replace(/\/$/, '')
+    const fallbackBaseUrl = `${currentUrl.origin}${configuredPath}`.replace(/\/$/, '')
+
+    if (!candidates.includes(fallbackBaseUrl)) {
+      candidates.push(fallbackBaseUrl)
+    }
+  } catch {
+    return candidates
+  }
+
+  return candidates
+}
+
+/**
+ * Create an actionable error for required JSON files after every candidate URL
+ * has failed, including the attempted URLs and the original fetch detail.
+ *
+ * @param {string} label
+ * @param {string[]} attemptedUrls
+ * @param {unknown} originalError
+ * @returns {Error}
+ */
+function createContentFetchError(label, attemptedUrls, originalError) {
+  const attempts = attemptedUrls.map((attemptedUrl) => `  - ${attemptedUrl}`).join('\n')
+  const checks = [
+    '  - que el dominio apunte al bucket público del contenido',
+    '  - que responda correctamente por HTTPS',
+    '  - que permita peticiones desde el navegador',
+  ].join('\n')
+  const detail =
+    originalError instanceof Error && originalError.message
+      ? ` Detalle original: ${originalError.message}`
+      : ''
+
+  return new Error([
+    `No se pudo acceder a ${label} en ninguna de estas URLs:`,
+    attempts,
+    'Verifica lo siguiente:',
+    checks,
+    `Detalle adicional:${detail || ' No hubo más información disponible.'}`,
+  ].join('\n'))
+}
+
+/**
+ * Fetch a required JSON file by trying each equivalent base URL candidate until
+ * one succeeds. Throws an actionable error when every candidate fails.
+ *
+ * @param {string} baseUrl
+ * @param {string} fileName
+ * @returns {Promise<{ data: object, resolvedBaseUrl: string }>}
+ */
+async function fetchRequiredJsonWithFallback(baseUrl, fileName) {
+  const candidateBaseUrls = getBaseUrlCandidates(baseUrl)
+  let lastError = null
+
+  for (const candidateBaseUrl of candidateBaseUrls) {
+    try {
+      return {
+        data: await fetchJson(`${candidateBaseUrl}/${fileName}`, fileName),
+        resolvedBaseUrl: candidateBaseUrl,
+      }
+    } catch (error) {
+      lastError = error
+      if (!isRecoverableFetchError(error)) {
+        throw error
+      }
+    }
+  }
+
+  throw createContentFetchError(
+    fileName,
+    candidateBaseUrls.map((candidateBaseUrl) => `${candidateBaseUrl}/${fileName}`),
+    lastError,
+  )
+}
+
+/**
+ * Fetch an optional JSON file by trying each equivalent base URL candidate.
+ * Returns null when every candidate fails with a recoverable network error.
+ *
+ * @param {string} baseUrl
+ * @param {string} fileName
+ * @returns {Promise<{ data: object, resolvedBaseUrl: string } | null>}
+ */
+async function fetchOptionalJsonWithFallback(baseUrl, fileName) {
+  const candidateBaseUrls = getBaseUrlCandidates(baseUrl)
+
+  for (const candidateBaseUrl of candidateBaseUrls) {
+    try {
+      return {
+        data: await fetchJson(`${candidateBaseUrl}/${fileName}`, fileName),
+        resolvedBaseUrl: candidateBaseUrl,
+      }
+    } catch (error) {
+      if (!isRecoverableFetchError(error)) {
+        return null
+      }
+    }
+  }
+
+  return null
+}
+
+/**
  * Normalize a public bucket URL, defaulting to HTTPS when the protocol is omitted.
  * Existing HTTP/HTTPS URLs are preserved to support local/dev bucket proxies.
  *
@@ -231,18 +380,22 @@ export function createR2PortfolioSource(config = {}) {
       }
 
       const normalizedPublicUrl = normalizePublicUrl(publicUrl)
-      const baseUrl = normalizedPublicUrl.replace(/\/$/, '')
+      const configuredBaseUrl = normalizedPublicUrl.replace(/\/$/, '')
 
-      const estructuraJson = await fetchJson(`${baseUrl}/_estructura.json`, '_estructura.json')
+      const estructuraResult = await fetchRequiredJsonWithFallback(configuredBaseUrl, '_estructura.json')
+      const estructuraJson = estructuraResult.data
+      const resolvedBaseUrl = estructuraResult.resolvedBaseUrl
 
       const sections = Array.isArray(estructuraJson.sections) ? estructuraJson.sections : []
 
       // ── Try _manifest.json first ────────────────────────────────────────────
-      let manifest = null
-      try {
-        manifest = await fetchJson(`${baseUrl}/_manifest.json`, '_manifest.json')
+      const manifestResult = await fetchOptionalJsonWithFallback(resolvedBaseUrl, '_manifest.json')
+      const manifest = manifestResult?.data ?? null
+      const contentBaseUrl = manifestResult?.resolvedBaseUrl ?? resolvedBaseUrl
+
+      if (manifestResult) {
         console.info('[r2:manifest] _manifest.json cargado correctamente.')
-      } catch {
+      } else {
         console.info(
           '[r2:manifest] _manifest.json no disponible. Usando descubrimiento por listado de bucket (?list-type=2).',
         )
@@ -259,7 +412,7 @@ export function createR2PortfolioSource(config = {}) {
         const manifestFiles = Array.isArray(manifest.files) ? manifest.files : []
 
         sectionImagesByName = resolveImagesFromManifest(
-          baseUrl,
+          contentBaseUrl,
           sections,
           manifestSectionImages,
           manifestFiles,
@@ -269,7 +422,7 @@ export function createR2PortfolioSource(config = {}) {
         let bucketKeys = []
 
         try {
-          bucketKeys = await fetchBucketKeys(baseUrl)
+          bucketKeys = await fetchBucketKeys(contentBaseUrl)
         } catch (error) {
           console.warn(
             '[r2:listing:warning] No se pudo listar el bucket. Se usará resolución directa por nombre.',
@@ -283,8 +436,8 @@ export function createR2PortfolioSource(config = {}) {
         for (const section of sections) {
           if (typeof section.img === 'string' && section.img.trim()) {
             const imgName = section.img.trim()
-            const resolvedImageKey = await resolveSectionImageKey(baseUrl, section, resolver, hasListing)
-            sectionImagesByName[imgName] = toObjectUrl(baseUrl, resolvedImageKey)
+            const resolvedImageKey = await resolveSectionImageKey(contentBaseUrl, section, resolver, hasListing)
+            sectionImagesByName[imgName] = toObjectUrl(contentBaseUrl, resolvedImageKey)
           }
         }
       }
@@ -293,7 +446,7 @@ export function createR2PortfolioSource(config = {}) {
         estructuraJson,
         sectionImagesByName,
         footer: null,
-        r2BaseUrl: baseUrl,
+        r2BaseUrl: contentBaseUrl,
         manifestSections:
           manifest && manifest.sections && typeof manifest.sections === 'object'
             ? manifest.sections
