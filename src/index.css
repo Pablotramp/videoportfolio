@@ -168,6 +168,12 @@
 
 .audio-card__cover {
   max-height: min(34vh, 19rem);
+  min-height: 150px;
+}
+
+.audio-card--active .audio-card__cover {
+  max-height: min(22vh, 13rem);
+  min-height: 0;
 }
 
 @media (max-width: 520px) {
@@ -177,5 +183,11 @@
 
   .audio-card__cover {
     max-height: min(26vh, 10.5rem);
+    min-height: 150px;
+  }
+
+  .audio-card--active .audio-card__cover {
+    max-height: min(16vh, 7rem);
+    min-height: 0;
   }
 }

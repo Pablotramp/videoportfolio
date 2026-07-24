@@ -34,19 +34,20 @@ function AudioPlayerPlaceholder({
   onActivate,
 }) {
   const audioRef = useRef(null)
-  const [isPlaying, setIsPlaying] = useState(false)
   const [metadataTitle, setMetadataTitle] = useState(null)
 
-  // Pause and reset when this item is deactivated (another item was selected).
-  // Calling el.pause() fires the 'pause' event → handleStop → setIsPlaying(false),
-  // so no direct setState call is needed here.
+  // Play/pause and reset based on whether this card is the active one.
+  // When activated, auto-play immediately. When deactivated, pause and reset.
   useEffect(() => {
-    if (!isActive) {
-      const el = audioRef.current
-      if (el) {
-        el.pause()
-        el.currentTime = 0
-      }
+    const el = audioRef.current
+    if (!el) return
+    if (isActive) {
+      el.play().catch(() => {
+        // Autoplay may be blocked by the browser — silently ignore.
+      })
+    } else {
+      el.pause()
+      el.currentTime = 0
     }
   }, [isActive])
 
@@ -57,13 +58,10 @@ function AudioPlayerPlaceholder({
 
     const handlePlay = () => {
       onActivate?.()
-      setIsPlaying(true)
     }
 
-    // On pause or end: mark as not playing and jump back to the beginning so
-    // the next play always starts fresh.
+    // On pause or end: jump back to the beginning so the next play starts fresh.
     const handleStop = () => {
-      setIsPlaying(false)
       el.currentTime = 0
     }
 
@@ -120,11 +118,14 @@ function AudioPlayerPlaceholder({
     ? `Audio: ${subtitle}`
     : `Audio: ${getTrimmedString(itemId) || 'pista'}`
 
+  const cardClass = [
+    'audio-card grid gap-3 rounded border border-black/20 bg-white p-3 text-zinc-800 sm:p-4',
+    isActive ? 'audio-card--active' : 'cursor-pointer',
+  ].join(' ')
+
   return (
     <div
-      className={`audio-card grid gap-3 rounded border border-black/20 bg-white p-3 text-zinc-800 transition-transform duration-300 sm:p-4 ${
-        isPlaying ? 'relative z-10 scale-[1.04]' : 'scale-100'
-      } ${!isActive ? 'cursor-pointer' : ''}`}
+      className={cardClass}
       aria-label={accessibilityLabel}
       onClick={!isActive ? onActivate : undefined}
     >
