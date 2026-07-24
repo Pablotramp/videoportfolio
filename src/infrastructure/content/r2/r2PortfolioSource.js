@@ -69,33 +69,59 @@ async function resolveSectionImageKey(baseUrl, section, resolver, hasListing) {
   return fallbackKey
 }
 
+function mergeManifestImageKeys(sectionImages, manifestFiles) {
+  const safeSectionImages =
+    sectionImages && typeof sectionImages === 'object' ? sectionImages : {}
+  const mergedKeys = []
+  const seenKeys = new Set()
+
+  function addKey(value) {
+    if (typeof value !== 'string') return
+    const normalized = value.trim()
+    if (!normalized || seenKeys.has(normalized)) return
+    seenKeys.add(normalized)
+    mergedKeys.push(normalized)
+  }
+
+  for (const value of Object.values(safeSectionImages)) addKey(value)
+  for (const value of manifestFiles) addKey(value)
+
+  return mergedKeys
+}
+
+function getMappedSectionImageKey(sectionImages, imgName) {
+  if (!sectionImages || typeof sectionImages !== 'object') return ''
+  const mappedValue = sectionImages[imgName]
+  return typeof mappedValue === 'string' ? mappedValue.trim() : ''
+}
+
 /**
- * Resolve section cover images using the sectionImages map from _manifest.json.
+ * Resolve section cover images using _manifest.json.
  *
  * @param {string} baseUrl
  * @param {object[]} sections  - Raw sections array from _estructura.json
  * @param {Record<string, string>} sectionImages - Map of img filename → bucket key
+ * @param {string[]} manifestFiles - Flat key list from manifest.files
+ *   (bucket object keys, including root-level filenames and prefixed paths).
  * @returns {Record<string, string>}  Map of img filename → full public URL
  */
-function resolveImagesFromManifest(baseUrl, sections, sectionImages) {
+function resolveImagesFromManifest(baseUrl, sections, sectionImages, manifestFiles = []) {
   const result = {}
-  const manifestKeys = Object.values(sectionImages).filter((value) => typeof value === 'string' && value.trim())
+  const manifestKeys = mergeManifestImageKeys(sectionImages, manifestFiles)
   let manifestResolver = null
 
   for (const section of sections) {
     if (typeof section.img !== 'string' || !section.img.trim()) continue
     const imgName = section.img.trim()
-    let resolvedKey = sectionImages[imgName]
+    const sectionCandidates = getSectionImageCandidates(section, imgName)
+    const directMappedKey = getMappedSectionImageKey(sectionImages, imgName)
+    let resolvedKey = directMappedKey || null
 
-    if (!resolvedKey) {
-      // Some manifests keep the resolved bucket key under a different filename key
-      // or only expose the prefixed object path. Reuse the same candidate strategy
-      // as the live-listing path so SVG covers in `_imagenesSeccionesJson/` still load.
+    if (!resolvedKey && manifestKeys.length > 0) {
       if (!manifestResolver) {
         manifestResolver = createKeyResolver(manifestKeys)
       }
-
-      resolvedKey = getSectionImageCandidates(section, imgName)
+      resolvedKey = sectionCandidates
         .map((candidate) => manifestResolver.resolveKey(candidate))
         .find(Boolean)
     }
@@ -107,9 +133,12 @@ function resolveImagesFromManifest(baseUrl, sections, sectionImages) {
       result[imgName] = toObjectUrl(baseUrl, resolvedKey)
     } else {
       console.warn(
-        `[r2:manifest:image] "${section.section ?? imgName}" — portada "${imgName}" no encontrada en manifest.sectionImages. Usando convención.`,
+        `[r2:manifest:image] "${section.section ?? imgName}" — portada "${imgName}" no encontrada en manifest. Usando convención.`,
       )
-      result[imgName] = toObjectUrl(baseUrl, `_imagenesSeccionesJson/${imgName}`)
+      const rawFallbackCandidate =
+        typeof sectionCandidates[0] === 'string' ? sectionCandidates[0].trim() : ''
+      const fallbackCandidate = rawFallbackCandidate || imgName
+      result[imgName] = toObjectUrl(baseUrl, fallbackCandidate)
     }
   }
 
@@ -221,9 +250,20 @@ export function createR2PortfolioSource(config = {}) {
 
       let sectionImagesByName = {}
 
-      if (manifest && manifest.sectionImages && typeof manifest.sectionImages === 'object') {
-        // ── Manifest path: resolve images without bucket listing ──────────────
-        sectionImagesByName = resolveImagesFromManifest(baseUrl, sections, manifest.sectionImages)
+      if (manifest) {
+        // ── Manifest path: resolve images from sectionImages + files ───────────
+        const manifestSectionImages =
+          manifest.sectionImages && typeof manifest.sectionImages === 'object'
+            ? manifest.sectionImages
+            : {}
+        const manifestFiles = Array.isArray(manifest.files) ? manifest.files : []
+
+        sectionImagesByName = resolveImagesFromManifest(
+          baseUrl,
+          sections,
+          manifestSectionImages,
+          manifestFiles,
+        )
       } else {
         // ── Legacy path: bucket listing (?list-type=2) ────────────────────────
         let bucketKeys = []
