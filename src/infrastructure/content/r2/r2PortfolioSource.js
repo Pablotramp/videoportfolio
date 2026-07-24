@@ -5,8 +5,50 @@ import {
   toObjectUrl,
 } from './r2Utils.js'
 
+const COVER_IMAGE_EXTENSIONS = ['svg', 'png', 'jpg', 'jpeg', 'webp', 'avif']
+
 function getSectionImageCandidates(_section, imgName) {
-  return [imgName]
+  const trimmed = typeof imgName === 'string' ? imgName.trim() : ''
+  if (!trimmed) return []
+
+  const dotIndex = trimmed.lastIndexOf('.')
+  const hasExtension = dotIndex > 0
+  const baseName = hasExtension ? trimmed.slice(0, dotIndex) : trimmed
+  const extension = hasExtension ? trimmed.slice(dotIndex + 1) : ''
+  const normalizedExtension = extension.toLowerCase()
+  const candidates = new Set(hasExtension ? [trimmed] : [])
+
+  const baseVariantSet = new Set([baseName])
+  const lowerBaseName = baseName.toLowerCase()
+  const capitalizedBaseName = baseName.charAt(0).toUpperCase() + baseName.slice(1)
+  if (lowerBaseName !== baseName) baseVariantSet.add(lowerBaseName)
+  if (capitalizedBaseName !== baseName) baseVariantSet.add(capitalizedBaseName)
+  const baseVariants = [...baseVariantSet].filter(Boolean)
+
+  const extensionVariants = hasExtension
+    ? [...new Set([
+      extension,
+      normalizedExtension,
+      normalizedExtension.toUpperCase(),
+      normalizedExtension.charAt(0).toUpperCase() + normalizedExtension.slice(1),
+    ])]
+    : COVER_IMAGE_EXTENSIONS
+
+  for (const baseVariant of baseVariants) {
+    if (!baseVariant) continue
+    if (hasExtension) {
+      for (const extensionVariant of extensionVariants) {
+        if (!extensionVariant) continue
+        candidates.add(`${baseVariant}.${extensionVariant}`)
+      }
+    } else {
+      for (const fallbackExtension of COVER_IMAGE_EXTENSIONS) {
+        candidates.add(`${baseVariant}.${fallbackExtension}`)
+      }
+    }
+  }
+
+  return [...candidates]
 }
 
 async function canProbeObject(url) {
@@ -104,12 +146,18 @@ function resolveImagesFromManifest(baseUrl, sections, sectionImages, manifestFil
     const imgName = section.img.trim()
     const sectionCandidates = getSectionImageCandidates(section, imgName)
     const directMappedKey = getMappedSectionImageKey(sectionImages, imgName)
-    let resolvedKey = directMappedKey || null
+    if (!manifestResolver && manifestKeys.length > 0) {
+      manifestResolver = createKeyResolver(manifestKeys)
+    }
+    let resolvedKey = null
 
-    if (!resolvedKey && manifestKeys.length > 0) {
-      if (!manifestResolver) {
-        manifestResolver = createKeyResolver(manifestKeys)
-      }
+    if (directMappedKey) {
+      resolvedKey = manifestResolver
+        ? manifestResolver.resolveKey(directMappedKey)
+        : directMappedKey
+    }
+
+    if (!resolvedKey && manifestResolver) {
       resolvedKey = sectionCandidates
         .map((candidate) => manifestResolver.resolveKey(candidate))
         .find(Boolean)

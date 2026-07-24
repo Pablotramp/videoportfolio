@@ -155,3 +155,27 @@
   min-height: calc(100vh - 64px - var(--footer-h, 41px));
   min-height: calc(100dvh - 64px - var(--footer-h, 41px));
 }
+
+.audio-gallery > li {
+  display: grid;
+  justify-items: center;
+}
+
+.audio-card {
+  width: clamp(9.5rem, 28vw, 18rem);
+  max-width: calc(100vw - 3rem);
+}
+
+.audio-card__cover {
+  max-height: min(34vh, 19rem);
+}
+
+@media (max-width: 520px) {
+  .audio-card {
+    width: clamp(8.5rem, 43vw, 11.5rem);
+  }
+
+  .audio-card__cover {
+    max-height: min(26vh, 10.5rem);
+  }
+}

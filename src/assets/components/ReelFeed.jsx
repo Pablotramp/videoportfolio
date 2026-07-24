@@ -6,6 +6,13 @@ const DEFAULT_FOOTER_HEIGHT_PX = 41
 const SLIDE_HEIGHT = `calc(100dvh - ${HEADER_HEIGHT_PX}px - var(--footer-h, ${DEFAULT_FOOTER_HEIGHT_PX}px))`
 const SLIDE_HEIGHT_STYLE = { height: SLIDE_HEIGHT }
 const AUTO_ADVANCE_MS = 5000
+const WHEEL_DEBOUNCE_MS = 550
+const WHEEL_DELTA_THRESHOLD = 8
+const PRIMARY_MOUSE_BUTTON = 0
+const SUPPORTS_FINE_POINTER =
+  typeof window !== 'undefined' &&
+  typeof window.matchMedia === 'function' &&
+  window.matchMedia('(hover: hover) and (pointer: fine)').matches
 
 const BREADCRUMBS_STYLE = {
   bottom: 'calc(env(safe-area-inset-bottom, 0px) + var(--footer-h, 41px) + 0.75rem)',
@@ -90,7 +97,7 @@ function ReelSlide({ item, isActive, isMuted, onPlay, onPause, onEnded, slideRef
  *  - Switching slides pauses and resets the previous video.
  *  - When the active video ends, the carousel automatically advances to the next slide.
  *  - While a video is actively playing, the automatic timer is suspended.
- *  - Manual navigation (arrows, dots, swipe) always works regardless of playback state.
+ *  - Manual navigation (rueda, arrastre, teclado, dots) always works regardless of playback state.
  *
  * @param {{ items: Array<{ id: string, hlsManifestUrl: string }> }} props
  */
@@ -101,9 +108,18 @@ export default function ReelFeed({ items }) {
   const activeIndexRef = useRef(0)
   const [isVideoPlaying, setIsVideoPlaying] = useState(false)
   const [isMuted, setIsMuted] = useState(true)
+  const [supportsFinePointer] = useState(SUPPORTS_FINE_POINTER)
 
   const sliderRef = useRef(null)
   const slideRefs = useRef([])
+  const wheelLockedRef = useRef(false)
+  const wheelTimerRef = useRef(null)
+  const dragStateRef = useRef({
+    isDragging: false,
+    startX: 0,
+    startScrollLeft: 0,
+    pointerId: null,
+  })
 
   const itemCount = Array.isArray(items) ? items.length : 0
   const soundToggleLabel = isMuted ? 'Activar sonido' : 'Silenciar'
@@ -127,7 +143,37 @@ export default function ReelFeed({ items }) {
     [itemCount, updateIndex],
   )
 
-  // Track active slide from horizontal scroll position
+  const handleKeyboardNavigation = useCallback(
+    (event) => {
+      if (itemCount <= 0) return
+      if (dragStateRef.current.isDragging) return
+
+      if (event.key === 'ArrowRight' || event.key === 'ArrowDown' || event.key === 'PageDown') {
+        event.preventDefault()
+        scrollToIndex(Math.min(activeIndexRef.current + 1, itemCount - 1))
+        return
+      }
+
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowUp' || event.key === 'PageUp') {
+        event.preventDefault()
+        scrollToIndex(Math.max(activeIndexRef.current - 1, 0))
+        return
+      }
+
+      if (event.key === 'Home') {
+        event.preventDefault()
+        scrollToIndex(0)
+        return
+      }
+
+      if (event.key === 'End') {
+        event.preventDefault()
+        scrollToIndex(itemCount - 1)
+      }
+    },
+    [itemCount, scrollToIndex],
+  )
+
   useEffect(() => {
     const slider = sliderRef.current
     if (!slider || itemCount === 0) return undefined
@@ -148,6 +194,43 @@ export default function ReelFeed({ items }) {
       cancelAnimationFrame(raf)
     }
   }, [itemCount, updateIndex])
+
+  useEffect(() => {
+    const slider = sliderRef.current
+    if (!slider || itemCount <= 1) return undefined
+
+    const onWheel = (event) => {
+      const isFocused = document.activeElement === slider
+      if (!isFocused && !slider.matches(':hover')) return
+      if (
+        Math.abs(event.deltaY) < WHEEL_DELTA_THRESHOLD &&
+        Math.abs(event.deltaX) < WHEEL_DELTA_THRESHOLD
+      ) {
+        return
+      }
+      event.preventDefault()
+      if (wheelLockedRef.current) return
+
+      wheelLockedRef.current = true
+      clearTimeout(wheelTimerRef.current)
+      wheelTimerRef.current = setTimeout(() => {
+        wheelLockedRef.current = false
+      }, WHEEL_DEBOUNCE_MS)
+
+      const current = activeIndexRef.current
+      if (event.deltaY > 0 || event.deltaX > 0) {
+        scrollToIndex(Math.min(current + 1, itemCount - 1))
+      } else {
+        scrollToIndex(Math.max(current - 1, 0))
+      }
+    }
+
+    slider.addEventListener('wheel', onWheel, { passive: false })
+    return () => {
+      slider.removeEventListener('wheel', onWheel)
+      clearTimeout(wheelTimerRef.current)
+    }
+  }, [itemCount, scrollToIndex])
 
   // Auto-advance timer — suspended while a video is actively playing.
   // Wraps around to slide 0 so the carousel loops continuously (same as Home.jsx).
@@ -176,6 +259,51 @@ export default function ReelFeed({ items }) {
     scrollToIndex(next)
   }, [itemCount, scrollToIndex])
 
+  const handlePointerDown = useCallback((event) => {
+    if (!event.isPrimary) return
+    if (event.pointerType === 'mouse' && event.button !== PRIMARY_MOUSE_BUTTON) return
+    if (
+      event.target instanceof Element &&
+      event.target.closest(
+        'button,a,input,select,textarea,[role="button"],[role="link"],[role="checkbox"],[role="radio"],[role="switch"],[role="tab"]',
+      )
+    ) {
+      return
+    }
+    const slider = sliderRef.current
+    if (!slider) return
+    dragStateRef.current = {
+      isDragging: true,
+      startX: event.clientX,
+      startScrollLeft: slider.scrollLeft,
+      pointerId: event.pointerId,
+    }
+    slider.setPointerCapture(event.pointerId)
+  }, [])
+
+  const handlePointerMove = useCallback((event) => {
+    const slider = sliderRef.current
+    const dragState = dragStateRef.current
+    if (!slider || !dragState.isDragging || dragState.pointerId !== event.pointerId) return
+    const deltaX = event.clientX - dragState.startX
+    slider.scrollLeft = dragState.startScrollLeft - deltaX
+  }, [])
+
+  const handlePointerEnd = useCallback((event) => {
+    const slider = sliderRef.current
+    const dragState = dragStateRef.current
+    if (!dragState.isDragging || dragState.pointerId !== event.pointerId) return
+    dragStateRef.current = {
+      isDragging: false,
+      startX: 0,
+      startScrollLeft: 0,
+      pointerId: null,
+    }
+    if (slider?.hasPointerCapture(event.pointerId)) {
+      slider.releasePointerCapture(event.pointerId)
+    }
+  }, [])
+
   if (!Array.isArray(items) || items.length === 0) return null
 
   return (
@@ -183,8 +311,19 @@ export default function ReelFeed({ items }) {
       {/* Horizontal scrollable carousel */}
       <div
         ref={sliderRef}
-        className="reel-carousel flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden scroll-smooth touch-pan-x"
+        className={`reel-carousel flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden scroll-smooth touch-pan-x ${
+          supportsFinePointer ? 'cursor-grab active:cursor-grabbing' : ''
+        }`}
         style={SLIDE_HEIGHT_STYLE}
+        role="region"
+        aria-label="Carrusel de videos"
+        aria-live="polite"
+        tabIndex={0}
+        onKeyDown={handleKeyboardNavigation}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerEnd}
+        onPointerCancel={handlePointerEnd}
       >
         {items.map((item, index) => (
           <ReelSlide
@@ -201,54 +340,6 @@ export default function ReelFeed({ items }) {
           />
         ))}
       </div>
-
-      {/* Previous arrow */}
-      {activeIndex > 0 && (
-        <button
-          type="button"
-          onClick={() => scrollToIndex(activeIndex - 1)}
-          aria-label="Video anterior"
-          className="absolute left-4 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-black/70 text-white backdrop-blur-sm transition hover:bg-black/90"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-4 w-4"
-            aria-hidden="true"
-          >
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
-        </button>
-      )}
-
-      {/* Next arrow */}
-      {activeIndex < itemCount - 1 && (
-        <button
-          type="button"
-          onClick={() => scrollToIndex(activeIndex + 1)}
-          aria-label="Video siguiente"
-          className="absolute right-4 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-black/70 text-white backdrop-blur-sm transition hover:bg-black/90"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-4 w-4"
-            aria-hidden="true"
-          >
-            <path d="M9 18l6-6-6-6" />
-          </svg>
-        </button>
-      )}
 
       {/* Dot indicators */}
       {itemCount > 1 && (
