@@ -171,7 +171,7 @@ function normalizeHostname(hostname = '') {
  */
 function isRecoverableFetchError(error) {
   const message = error instanceof Error ? error.message : String(error ?? '')
-  return error instanceof TypeError || /failed to fetch|networkerror/i.test(message)
+  return error instanceof TypeError || /failed to fetch|network\s*error/i.test(message)
 }
 
 /**
@@ -220,15 +220,17 @@ function getBaseUrlCandidates(baseUrl) {
  * @returns {Error}
  */
 function createContentFetchError(label, attemptedUrls, originalError) {
-  const attempts = attemptedUrls.map((attemptedUrl) => `- ${attemptedUrl}`).join('\n')
+  const attempts = attemptedUrls.map((attemptedUrl) => `  - ${attemptedUrl}`).join('\n')
   const detail =
     originalError instanceof Error && originalError.message
       ? ` Detalle original: ${originalError.message}`
       : ''
 
-  return new Error(
-    `No se pudo acceder a ${label} en ninguna de estas URLs:\n${attempts}\nVerifica que el dominio apunte al bucket público del contenido, responda por HTTPS y permita peticiones desde el navegador.${detail}`,
-  )
+  return new Error([
+    `No se pudo acceder a ${label} en ninguna de estas URLs:`,
+    attempts,
+    `Verifica que el dominio apunte al bucket público del contenido, responda por HTTPS y permita peticiones desde el navegador.${detail}`,
+  ].join('\n'))
 }
 
 /**
