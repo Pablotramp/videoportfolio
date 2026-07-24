@@ -221,6 +221,11 @@ function getBaseUrlCandidates(baseUrl) {
  */
 function createContentFetchError(label, attemptedUrls, originalError) {
   const attempts = attemptedUrls.map((attemptedUrl) => `  - ${attemptedUrl}`).join('\n')
+  const checks = [
+    '  - que el dominio apunte al bucket público del contenido',
+    '  - que responda correctamente por HTTPS',
+    '  - que permita peticiones desde el navegador',
+  ].join('\n')
   const detail =
     originalError instanceof Error && originalError.message
       ? ` Detalle original: ${originalError.message}`
@@ -229,7 +234,9 @@ function createContentFetchError(label, attemptedUrls, originalError) {
   return new Error([
     `No se pudo acceder a ${label} en ninguna de estas URLs:`,
     attempts,
-    `Verifica que el dominio apunte al bucket público del contenido, responda por HTTPS y permita peticiones desde el navegador.${detail}`,
+    'Verifica lo siguiente:',
+    checks,
+    `Detalle adicional:${detail || ' No hubo más información disponible.'}`,
   ].join('\n'))
 }
 
