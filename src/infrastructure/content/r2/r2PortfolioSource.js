@@ -80,7 +80,9 @@ async function resolveSectionImageKey(baseUrl, section, resolver, hasListing) {
  */
 function resolveImagesFromManifest(baseUrl, sections, sectionImages, manifestFiles = []) {
   const result = {}
-  const manifestKeys = [...new Set([...Object.values(sectionImages), ...manifestFiles])].filter(
+  const safeSectionImages =
+    sectionImages && typeof sectionImages === 'object' ? sectionImages : {}
+  const manifestKeys = [...new Set([...Object.values(safeSectionImages), ...manifestFiles])].filter(
     (value) => typeof value === 'string' && value.trim(),
   )
   const manifestResolver = manifestKeys.length > 0 ? createKeyResolver(manifestKeys) : null
@@ -88,12 +90,13 @@ function resolveImagesFromManifest(baseUrl, sections, sectionImages, manifestFil
   for (const section of sections) {
     if (typeof section.img !== 'string' || !section.img.trim()) continue
     const imgName = section.img.trim()
+    const sectionCandidates = getSectionImageCandidates(section, imgName)
     const directMappedKey =
-      typeof sectionImages[imgName] === 'string' ? sectionImages[imgName].trim() : ''
+      typeof safeSectionImages[imgName] === 'string' ? safeSectionImages[imgName].trim() : ''
     let resolvedKey = directMappedKey || null
 
     if (!resolvedKey) {
-      resolvedKey = getSectionImageCandidates(section, imgName)
+      resolvedKey = sectionCandidates
         .map((candidate) => manifestResolver?.resolveKey(candidate) ?? null)
         .find(Boolean)
     }
@@ -107,7 +110,7 @@ function resolveImagesFromManifest(baseUrl, sections, sectionImages, manifestFil
       console.warn(
         `[r2:manifest:image] "${section.section ?? imgName}" — portada "${imgName}" no encontrada en manifest. Usando convención.`,
       )
-      result[imgName] = toObjectUrl(baseUrl, imgName)
+      result[imgName] = toObjectUrl(baseUrl, sectionCandidates[0] ?? imgName)
     }
   }
 
