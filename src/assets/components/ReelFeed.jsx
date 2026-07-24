@@ -7,6 +7,8 @@ const SLIDE_HEIGHT = `calc(100dvh - ${HEADER_HEIGHT_PX}px - var(--footer-h, ${DE
 const SLIDE_HEIGHT_STYLE = { height: SLIDE_HEIGHT }
 const AUTO_ADVANCE_MS = 5000
 const WHEEL_DEBOUNCE_MS = 550
+const WHEEL_DELTA_THRESHOLD = 8
+const PRIMARY_MOUSE_BUTTON = 0
 
 const BREADCRUMBS_STYLE = {
   bottom: 'calc(env(safe-area-inset-bottom, 0px) + var(--footer-h, 41px) + 0.75rem)',
@@ -193,7 +195,12 @@ export default function ReelFeed({ items }) {
     if (!slider || itemCount <= 1) return undefined
 
     const onWheel = (event) => {
-      if (Math.abs(event.deltaY) < 8 && Math.abs(event.deltaX) < 8) return
+      if (
+        Math.abs(event.deltaY) < WHEEL_DELTA_THRESHOLD &&
+        Math.abs(event.deltaX) < WHEEL_DELTA_THRESHOLD
+      ) {
+        return
+      }
       event.preventDefault()
       if (wheelLockedRef.current) return
 
@@ -246,7 +253,7 @@ export default function ReelFeed({ items }) {
   }, [itemCount, scrollToIndex])
 
   const handlePointerDown = useCallback((event) => {
-    if (event.pointerType !== 'mouse' || event.button !== 0) return
+    if (event.pointerType !== 'mouse' || event.button !== PRIMARY_MOUSE_BUTTON) return
     const slider = sliderRef.current
     if (!slider) return
     dragStateRef.current = {

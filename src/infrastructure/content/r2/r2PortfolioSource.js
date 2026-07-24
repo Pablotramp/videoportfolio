@@ -132,13 +132,16 @@ function getMappedSectionImageKey(sectionImages, imgName) {
 function resolveImagesFromManifest(baseUrl, sections, sectionImages, manifestFiles = []) {
   const result = {}
   const manifestKeys = mergeManifestImageKeys(sectionImages, manifestFiles)
-  const manifestResolver = manifestKeys.length > 0 ? createKeyResolver(manifestKeys) : null
+  let manifestResolver = null
 
   for (const section of sections) {
     if (typeof section.img !== 'string' || !section.img.trim()) continue
     const imgName = section.img.trim()
     const sectionCandidates = getSectionImageCandidates(section, imgName)
     const directMappedKey = getMappedSectionImageKey(sectionImages, imgName)
+    if (!manifestResolver && manifestKeys.length > 0) {
+      manifestResolver = createKeyResolver(manifestKeys)
+    }
     let resolvedKey = null
 
     if (directMappedKey) {

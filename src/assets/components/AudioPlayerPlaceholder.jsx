@@ -89,7 +89,8 @@ function AudioPlayerPlaceholder({
       try {
         const response = await fetch(metadataUrl)
         if (!response.ok) {
-          throw new Error(`Metadata fetch failed (${response.status} ${response.statusText})`)
+          if (!cancelled) setMetadataTitle(null)
+          return
         }
         const json = await response.json()
         const resolvedTitle = getTrimmedString(json?.title) || null
