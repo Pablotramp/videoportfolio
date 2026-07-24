@@ -18,11 +18,11 @@ function getSectionImageCandidates(_section, imgName) {
   const normalizedExtension = extension.toLowerCase()
   const candidates = new Set(hasExtension ? [trimmed] : [])
 
-  const baseVariants = [
+  const baseVariants = [...new Set([
     baseName,
     baseName.toLowerCase(),
     baseName.charAt(0).toUpperCase() + baseName.slice(1),
-  ].filter(Boolean)
+  ])].filter(Boolean)
 
   const extensionVariants = hasExtension
     ? [

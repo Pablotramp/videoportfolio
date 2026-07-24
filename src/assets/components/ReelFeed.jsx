@@ -9,6 +9,10 @@ const AUTO_ADVANCE_MS = 5000
 const WHEEL_DEBOUNCE_MS = 550
 const WHEEL_DELTA_THRESHOLD = 8
 const PRIMARY_MOUSE_BUTTON = 0
+const SUPPORTS_FINE_POINTER =
+  typeof window !== 'undefined' &&
+  typeof window.matchMedia === 'function' &&
+  window.matchMedia('(hover: hover) and (pointer: fine)').matches
 
 const BREADCRUMBS_STYLE = {
   bottom: 'calc(env(safe-area-inset-bottom, 0px) + var(--footer-h, 41px) + 0.75rem)',
@@ -98,18 +102,13 @@ function ReelSlide({ item, isActive, isMuted, onPlay, onPause, onEnded, slideRef
  * @param {{ items: Array<{ id: string, hlsManifestUrl: string }> }} props
  */
 export default function ReelFeed({ items }) {
-  const supportsFinePointerDefault =
-    typeof window !== 'undefined' &&
-    typeof window.matchMedia === 'function' &&
-    window.matchMedia('(hover: hover) and (pointer: fine)').matches
-
   const [activeIndex, setActiveIndex] = useState(0)
   // activeIndexRef mirrors activeIndex so scroll/timer callbacks can read the
   // current index without becoming stale closures that require re-registration.
   const activeIndexRef = useRef(0)
   const [isVideoPlaying, setIsVideoPlaying] = useState(false)
   const [isMuted, setIsMuted] = useState(true)
-  const [supportsFinePointer] = useState(supportsFinePointerDefault)
+  const [supportsFinePointer] = useState(SUPPORTS_FINE_POINTER)
 
   const sliderRef = useRef(null)
   const slideRefs = useRef([])
@@ -147,6 +146,7 @@ export default function ReelFeed({ items }) {
   const handleKeyboardNavigation = useCallback(
     (event) => {
       if (itemCount <= 0) return
+      if (dragStateRef.current.isDragging) return
 
       if (event.key === 'ArrowRight' || event.key === 'ArrowDown' || event.key === 'PageDown') {
         event.preventDefault()
@@ -258,7 +258,11 @@ export default function ReelFeed({ items }) {
   }, [itemCount, scrollToIndex])
 
   const handlePointerDown = useCallback((event) => {
+    if (!event.isPrimary) return
     if (event.pointerType === 'mouse' && event.button !== PRIMARY_MOUSE_BUTTON) return
+    if (event.target instanceof Element && event.target.closest('button,a,input,select,textarea')) {
+      return
+    }
     const slider = sliderRef.current
     if (!slider) return
     dragStateRef.current = {

@@ -96,7 +96,7 @@ function AudioPlayerPlaceholder({
         const resolvedTitle = getTrimmedString(json?.title) || null
         if (!cancelled) setMetadataTitle(resolvedTitle)
       } catch (error) {
-        console.warn('[audio:metadata] No se pudo cargar la metadata de título.', error)
+        console.warn('[audio:metadatos] No se pudo cargar el título.', error)
         if (!cancelled) setMetadataTitle(null)
       }
     }
