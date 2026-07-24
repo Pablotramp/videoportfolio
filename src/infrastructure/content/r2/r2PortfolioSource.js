@@ -14,8 +14,8 @@ function getSectionImageCandidates(section, imgName) {
     ''
 
   return [
-    `_imagenesSeccionesJson/${imgName}`,
     imgName,
+    `_imagenesSeccionesJson/${imgName}`,
     folder ? `${folder}/${imgName}` : null,
   ].filter((candidate, index, candidates) => candidate && candidates.indexOf(candidate) === index)
 }
