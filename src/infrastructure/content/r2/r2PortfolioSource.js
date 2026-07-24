@@ -283,7 +283,7 @@ async function fetchOptionalJsonWithFallback(baseUrl, fileName) {
       }
     } catch (error) {
       if (!isRecoverableFetchError(error)) {
-        throw error
+        return null
       }
     }
   }
@@ -371,28 +371,22 @@ export function createR2PortfolioSource(config = {}) {
       }
 
       const normalizedPublicUrl = normalizePublicUrl(publicUrl)
-      let baseUrl = normalizedPublicUrl.replace(/\/$/, '')
+      const configuredBaseUrl = normalizedPublicUrl.replace(/\/$/, '')
 
-      const estructuraResult = await fetchRequiredJsonWithFallback(baseUrl, '_estructura.json')
+      const estructuraResult = await fetchRequiredJsonWithFallback(configuredBaseUrl, '_estructura.json')
       const estructuraJson = estructuraResult.data
-      baseUrl = estructuraResult.resolvedBaseUrl
+      const resolvedBaseUrl = estructuraResult.resolvedBaseUrl
 
       const sections = Array.isArray(estructuraJson.sections) ? estructuraJson.sections : []
 
       // ── Try _manifest.json first ────────────────────────────────────────────
-      let manifest = null
-      try {
-        const manifestResult = await fetchOptionalJsonWithFallback(baseUrl, '_manifest.json')
-        if (manifestResult) {
-          manifest = manifestResult.data
-          baseUrl = manifestResult.resolvedBaseUrl
-          console.info('[r2:manifest] _manifest.json cargado correctamente.')
-        } else {
-          console.info(
-            '[r2:manifest] _manifest.json no disponible. Usando descubrimiento por listado de bucket (?list-type=2).',
-          )
-        }
-      } catch {
+      const manifestResult = await fetchOptionalJsonWithFallback(resolvedBaseUrl, '_manifest.json')
+      const manifest = manifestResult?.data ?? null
+      const contentBaseUrl = manifestResult?.resolvedBaseUrl ?? resolvedBaseUrl
+
+      if (manifestResult) {
+        console.info('[r2:manifest] _manifest.json cargado correctamente.')
+      } else {
         console.info(
           '[r2:manifest] _manifest.json no disponible. Usando descubrimiento por listado de bucket (?list-type=2).',
         )
@@ -409,7 +403,7 @@ export function createR2PortfolioSource(config = {}) {
         const manifestFiles = Array.isArray(manifest.files) ? manifest.files : []
 
         sectionImagesByName = resolveImagesFromManifest(
-          baseUrl,
+          contentBaseUrl,
           sections,
           manifestSectionImages,
           manifestFiles,
@@ -419,7 +413,7 @@ export function createR2PortfolioSource(config = {}) {
         let bucketKeys = []
 
         try {
-          bucketKeys = await fetchBucketKeys(baseUrl)
+          bucketKeys = await fetchBucketKeys(contentBaseUrl)
         } catch (error) {
           console.warn(
             '[r2:listing:warning] No se pudo listar el bucket. Se usará resolución directa por nombre.',
@@ -433,8 +427,8 @@ export function createR2PortfolioSource(config = {}) {
         for (const section of sections) {
           if (typeof section.img === 'string' && section.img.trim()) {
             const imgName = section.img.trim()
-            const resolvedImageKey = await resolveSectionImageKey(baseUrl, section, resolver, hasListing)
-            sectionImagesByName[imgName] = toObjectUrl(baseUrl, resolvedImageKey)
+            const resolvedImageKey = await resolveSectionImageKey(contentBaseUrl, section, resolver, hasListing)
+            sectionImagesByName[imgName] = toObjectUrl(contentBaseUrl, resolvedImageKey)
           }
         }
       }
@@ -443,7 +437,7 @@ export function createR2PortfolioSource(config = {}) {
         estructuraJson,
         sectionImagesByName,
         footer: null,
-        r2BaseUrl: baseUrl,
+        r2BaseUrl: contentBaseUrl,
         manifestSections:
           manifest && manifest.sections && typeof manifest.sections === 'object'
             ? manifest.sections
