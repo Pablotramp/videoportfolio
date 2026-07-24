@@ -172,13 +172,30 @@ function classifyFolder(baseUrl, keys, folderPrefix) {
   const audioFiles = directFiles.filter((f) => AUDIO_EXTENSIONS.has(getExtension(f)))
 
   if (audioFiles.length > 0) {
+    // Build a lookup set of image files for O(1) cover detection.
+    const imageFileSet = new Set(directFiles.filter((f) => IMAGE_EXTENSIONS.has(getExtension(f))))
+
     const items = audioFiles.map((filename) => {
+      const baseName = getBaseName(filename)
       const audioKey = `${folderPrefix}${filename}`
+
+      // Look for a cover image whose base name matches the audio file (homónima).
+      let coverKey = null
+      for (const ext of IMAGE_EXTENSIONS) {
+        const candidate = `${baseName}.${ext}`
+        if (imageFileSet.has(candidate)) {
+          coverKey = `${folderPrefix}${candidate}`
+          break
+        }
+      }
+
       return {
-        id: getBaseName(filename),
+        id: baseName,
         itemType: 'audio',
         audioKey,
         audioUrl: toObjectUrl(baseUrl, audioKey),
+        coverKey,
+        coverUrl: coverKey ? toObjectUrl(baseUrl, coverKey) : null,
       }
     })
     return { contentType: 'audio', items }

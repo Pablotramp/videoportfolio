@@ -74,11 +74,15 @@ function buildItemsFromManifest(manifestSection, r2BaseUrl) {
     }
 
     if (item.itemType === 'audio') {
+      const coverUrl = item.coverKey
+        ? toObjectUrl(r2BaseUrl, item.coverKey)
+        : (item.coverUrl ?? null)
       return {
         ...item,
         audioUrl: item.audioKey
           ? toObjectUrl(r2BaseUrl, item.audioKey)
           : (item.audioUrl ?? ''),
+        coverUrl,
       }
     }
 

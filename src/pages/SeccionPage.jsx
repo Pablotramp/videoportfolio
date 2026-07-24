@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useSection } from '../application/section/useSection.js'
 import HlsPlayerPlaceholder from '../assets/components/HlsPlayerPlaceholder.jsx'
@@ -68,6 +69,12 @@ function SeccionPage({ sections, r2BaseUrl, sectionManifest, manifestFiles }) {
   const section = sections.find((entry) => entry.slug === slug)
 
   const { contentType, items, diagnostics, loading, error } = useSection(section ?? null, r2BaseUrl, sectionManifest ?? null, manifestFiles ?? null)
+
+  // Track which audio item is currently active (controls visible / not yet reset).
+  // Stored as { slug, id } so the active item resets naturally when the section changes
+  // without needing a separate effect.
+  const [activeAudio, setActiveAudio] = useState(null)
+  const activeAudioId = activeAudio?.slug === slug ? activeAudio.id : null
 
   if (!section) {
     return (
@@ -171,6 +178,9 @@ function SeccionPage({ sections, r2BaseUrl, sectionManifest, manifestFiles }) {
                     itemId={item.id}
                     audioUrl={item.audioUrl}
                     audioKey={item.audioKey}
+                    coverUrl={item.coverUrl ?? null}
+                    isActive={activeAudioId === item.id}
+                    onActivate={() => setActiveAudio({ slug, id: item.id })}
                   />
                 </li>
               ))}
