@@ -225,7 +225,15 @@ function Home({ sections }) {
                   <img
                     src={section.previewImage}
                     alt={section.name}
-                    onError={SECTION_IMAGE_DEBUG ? () => handleImageError(section.entryName) : undefined}
+                    onError={
+                      SECTION_IMAGE_DEBUG
+                        ? () => handleImageError(section.entryName)
+                        : () =>
+                            console.warn(
+                              '[home:image] No se pudo cargar la imagen de portada:',
+                              section.previewImage,
+                            )
+                    }
                   />
                 )}
               </div>
