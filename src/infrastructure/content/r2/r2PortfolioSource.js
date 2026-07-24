@@ -80,11 +80,10 @@ async function resolveSectionImageKey(baseUrl, section, resolver, hasListing) {
  */
 function resolveImagesFromManifest(baseUrl, sections, sectionImages, manifestFiles = []) {
   const result = {}
-  const manifestKeys = [
-    ...Object.values(sectionImages),
-    ...manifestFiles,
-  ].filter((value, index, values) => typeof value === 'string' && value.trim() && values.indexOf(value) === index)
-  const manifestResolver = createKeyResolver(manifestKeys)
+  const manifestKeys = [...new Set([...Object.values(sectionImages), ...manifestFiles])].filter(
+    (value) => typeof value === 'string' && value.trim(),
+  )
+  const manifestResolver = manifestKeys.length > 0 ? createKeyResolver(manifestKeys) : null
 
   for (const section of sections) {
     if (typeof section.img !== 'string' || !section.img.trim()) continue
@@ -95,7 +94,7 @@ function resolveImagesFromManifest(baseUrl, sections, sectionImages, manifestFil
 
     if (!resolvedKey) {
       resolvedKey = getSectionImageCandidates(section, imgName)
-        .map((candidate) => manifestResolver.resolveKey(candidate))
+        .map((candidate) => manifestResolver?.resolveKey(candidate) ?? null)
         .find(Boolean)
     }
 
