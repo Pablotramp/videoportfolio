@@ -18,19 +18,20 @@ function getSectionImageCandidates(_section, imgName) {
   const normalizedExtension = extension.toLowerCase()
   const candidates = new Set(hasExtension ? [trimmed] : [])
 
-  const baseVariants = [...new Set([
-    baseName,
-    baseName.toLowerCase(),
-    baseName.charAt(0).toUpperCase() + baseName.slice(1),
-  ])].filter(Boolean)
+  const baseVariantSet = new Set([baseName])
+  const lowerBaseName = baseName.toLowerCase()
+  const capitalizedBaseName = baseName.charAt(0).toUpperCase() + baseName.slice(1)
+  if (lowerBaseName !== baseName) baseVariantSet.add(lowerBaseName)
+  if (capitalizedBaseName !== baseName) baseVariantSet.add(capitalizedBaseName)
+  const baseVariants = [...baseVariantSet].filter(Boolean)
 
   const extensionVariants = hasExtension
-    ? [
+    ? [...new Set([
       extension,
       normalizedExtension,
       normalizedExtension.toUpperCase(),
       normalizedExtension.charAt(0).toUpperCase() + normalizedExtension.slice(1),
-    ]
+    ])]
     : COVER_IMAGE_EXTENSIONS
 
   for (const baseVariant of baseVariants) {

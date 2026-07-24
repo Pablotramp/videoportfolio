@@ -200,6 +200,8 @@ export default function ReelFeed({ items }) {
     if (!slider || itemCount <= 1) return undefined
 
     const onWheel = (event) => {
+      const isFocused = document.activeElement === slider
+      if (!isFocused && !slider.matches(':hover')) return
       if (
         Math.abs(event.deltaY) < WHEEL_DELTA_THRESHOLD &&
         Math.abs(event.deltaX) < WHEEL_DELTA_THRESHOLD
@@ -260,7 +262,12 @@ export default function ReelFeed({ items }) {
   const handlePointerDown = useCallback((event) => {
     if (!event.isPrimary) return
     if (event.pointerType === 'mouse' && event.button !== PRIMARY_MOUSE_BUTTON) return
-    if (event.target instanceof Element && event.target.closest('button,a,input,select,textarea')) {
+    if (
+      event.target instanceof Element &&
+      event.target.closest(
+        'button,a,input,select,textarea,[role="button"],[role="link"],[role="checkbox"],[role="radio"],[role="switch"],[role="tab"]',
+      )
+    ) {
       return
     }
     const slider = sliderRef.current
