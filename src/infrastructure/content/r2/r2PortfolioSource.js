@@ -72,9 +72,10 @@ async function resolveSectionImageKey(baseUrl, section, resolver, hasListing) {
 function mergeManifestImageKeys(sectionImages, manifestFiles) {
   const safeSectionImages =
     sectionImages && typeof sectionImages === 'object' ? sectionImages : {}
-  return [...new Set([...Object.values(safeSectionImages), ...manifestFiles])].filter(
-    (value) => typeof value === 'string' && value.trim(),
-  )
+  return [...new Set([...Object.values(safeSectionImages), ...manifestFiles])].filter((value) => {
+    if (typeof value !== 'string') return false
+    return value.trim().length > 0
+  })
 }
 
 function getMappedSectionImageKey(sectionImages, imgName) {
@@ -96,7 +97,7 @@ function getMappedSectionImageKey(sectionImages, imgName) {
 function resolveImagesFromManifest(baseUrl, sections, sectionImages, manifestFiles = []) {
   const result = {}
   const manifestKeys = mergeManifestImageKeys(sectionImages, manifestFiles)
-  const manifestResolver = manifestKeys.length > 0 ? createKeyResolver(manifestKeys) : null
+  let manifestResolver = null
 
   for (const section of sections) {
     if (typeof section.img !== 'string' || !section.img.trim()) continue
@@ -105,9 +106,12 @@ function resolveImagesFromManifest(baseUrl, sections, sectionImages, manifestFil
     const directMappedKey = getMappedSectionImageKey(sectionImages, imgName)
     let resolvedKey = directMappedKey || null
 
-    if (!resolvedKey) {
+    if (!resolvedKey && manifestKeys.length > 0) {
+      if (!manifestResolver) {
+        manifestResolver = createKeyResolver(manifestKeys)
+      }
       resolvedKey = sectionCandidates
-        .map((candidate) => manifestResolver?.resolveKey(candidate))
+        .map((candidate) => manifestResolver.resolveKey(candidate))
         .find(Boolean)
     }
 
@@ -120,7 +124,11 @@ function resolveImagesFromManifest(baseUrl, sections, sectionImages, manifestFil
       console.warn(
         `[r2:manifest:image] "${section.section ?? imgName}" — portada "${imgName}" no encontrada en manifest. Usando convención.`,
       )
-      result[imgName] = toObjectUrl(baseUrl, sectionCandidates[0] ?? imgName)
+      const fallbackCandidate =
+        typeof sectionCandidates[0] === 'string' && sectionCandidates[0].trim()
+          ? sectionCandidates[0].trim()
+          : imgName
+      result[imgName] = toObjectUrl(baseUrl, fallbackCandidate)
     }
   }
 
