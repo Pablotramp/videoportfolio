@@ -69,6 +69,12 @@ async function resolveSectionImageKey(baseUrl, section, resolver, hasListing) {
   return fallbackKey
 }
 
+function mergeManifestImageKeys(sectionImages, manifestFiles) {
+  return [...new Set([...Object.values(sectionImages), ...manifestFiles])].filter(
+    (value) => typeof value === 'string' && value.trim(),
+  )
+}
+
 /**
  * Resolve section cover images using _manifest.json.
  *
@@ -76,15 +82,14 @@ async function resolveSectionImageKey(baseUrl, section, resolver, hasListing) {
  * @param {object[]} sections  - Raw sections array from _estructura.json
  * @param {Record<string, string>} sectionImages - Map of img filename → bucket key
  * @param {string[]} manifestFiles - Flat key list from manifest.files
+ *   (bucket object keys, including root-level filenames and prefixed paths).
  * @returns {Record<string, string>}  Map of img filename → full public URL
  */
 function resolveImagesFromManifest(baseUrl, sections, sectionImages, manifestFiles = []) {
   const result = {}
   const safeSectionImages =
     sectionImages && typeof sectionImages === 'object' ? sectionImages : {}
-  const manifestKeys = [...new Set([...Object.values(safeSectionImages), ...manifestFiles])].filter(
-    (value) => typeof value === 'string' && value.trim(),
-  )
+  const manifestKeys = mergeManifestImageKeys(safeSectionImages, manifestFiles)
   const manifestResolver = manifestKeys.length > 0 ? createKeyResolver(manifestKeys) : null
 
   for (const section of sections) {
