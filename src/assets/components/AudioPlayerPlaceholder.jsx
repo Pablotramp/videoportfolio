@@ -90,7 +90,7 @@ function AudioPlayerPlaceholder({ itemId, audioUrl, audioKey, coverUrl, isActive
       <audio
         ref={audioRef}
         preload="none"
-        controls={isActive || undefined}
+        controls={isActive}
         className="w-full"
         style={isActive ? undefined : { display: 'none' }}
       >
