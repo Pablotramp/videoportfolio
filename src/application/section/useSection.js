@@ -77,11 +77,19 @@ function buildItemsFromManifest(manifestSection, r2BaseUrl) {
       const coverUrl = item.coverKey
         ? toObjectUrl(r2BaseUrl, item.coverKey)
         : (item.coverUrl ?? null)
+      const metadataKey =
+        (typeof item.metadataKey === 'string' && item.metadataKey.trim()) ||
+        (typeof item.jsonKey === 'string' && item.jsonKey.trim()) ||
+        null
       return {
         ...item,
         audioUrl: item.audioKey
           ? toObjectUrl(r2BaseUrl, item.audioKey)
           : (item.audioUrl ?? ''),
+        metadataKey,
+        metadataUrl: metadataKey
+          ? toObjectUrl(r2BaseUrl, metadataKey)
+          : (item.metadataUrl ?? null),
         coverUrl,
       }
     }

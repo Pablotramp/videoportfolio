@@ -1,4 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+
+function getTrimmedString(value) {
+  return typeof value === 'string' ? value.trim() : ''
+}
 
 /**
  * AudioPlayerPlaceholder — audio card with optional cover image.
@@ -14,14 +18,24 @@ import { useEffect, useRef, useState } from 'react'
  * @param {object}   props
  * @param {string}   props.itemId      - Human-readable item identifier / title.
  * @param {string}   props.audioUrl    - Full URL of the audio file.
- * @param {string}   [props.audioKey]  - R2 key (shown as subtitle).
+ * @param {string}   [props.itemTitle] - Optional preferred title (manifest/custom).
+ * @param {string}   [props.metadataUrl] - Optional JSON URL ({ title }) for subtitle.
  * @param {string}   [props.coverUrl]  - Full URL of the cover image (may be null).
  * @param {boolean}  props.isActive    - Whether this item is currently selected.
  * @param {Function} props.onActivate  - Called when the user activates this item.
  */
-function AudioPlayerPlaceholder({ itemId, audioUrl, audioKey, coverUrl, isActive, onActivate }) {
+function AudioPlayerPlaceholder({
+  itemId,
+  audioUrl,
+  itemTitle = null,
+  metadataUrl = null,
+  coverUrl,
+  isActive,
+  onActivate,
+}) {
   const audioRef = useRef(null)
   const [isPlaying, setIsPlaying] = useState(false)
+  const [metadataTitle, setMetadataTitle] = useState(null)
 
   // Pause and reset when this item is deactivated (another item was selected).
   // Calling el.pause() fires the 'pause' event → handleStop → setIsPlaying(false),
@@ -64,26 +78,64 @@ function AudioPlayerPlaceholder({ itemId, audioUrl, audioKey, coverUrl, isActive
     }
   }, [onActivate])
 
-  const displayName = itemId ?? audioKey ?? '—'
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadMetadataTitle() {
+      if (!metadataUrl) {
+        setMetadataTitle(null)
+        return
+      }
+      try {
+        const response = await fetch(metadataUrl)
+        if (!response.ok) {
+          throw new Error(`Metadata fetch failed (${response.status} ${response.statusText})`)
+        }
+        const json = await response.json()
+        const resolvedTitle = getTrimmedString(json?.title) || null
+        if (!cancelled) setMetadataTitle(resolvedTitle)
+      } catch {
+        if (!cancelled) setMetadataTitle(null)
+      }
+    }
+
+    loadMetadataTitle()
+
+    return () => {
+      cancelled = true
+    }
+  }, [metadataUrl])
+
+  const subtitle = useMemo(() => {
+    const preferredTitle = getTrimmedString(itemTitle)
+    if (preferredTitle) return preferredTitle
+    const metadataValue = getTrimmedString(metadataTitle)
+    if (metadataValue) return metadataValue
+    return null
+  }, [itemTitle, metadataTitle])
+
+  const accessibilityLabel = subtitle
+    ? `Audio: ${subtitle}`
+    : `Audio: ${getTrimmedString(itemId) || 'pista'}`
 
   return (
     <div
-      className={`grid gap-3 rounded border border-black/20 bg-white/80 p-4 text-zinc-800 transition-transform duration-300 w-fit min-w-[220px] max-w-[400px] ${
+      className={`audio-card grid gap-3 rounded border border-black/20 bg-white p-3 text-zinc-800 transition-transform duration-300 sm:p-4 ${
         isPlaying ? 'relative z-10 scale-[1.04]' : 'scale-100'
       } ${!isActive ? 'cursor-pointer' : ''}`}
-      aria-label={`Audio: ${displayName}`}
+      aria-label={accessibilityLabel}
       onClick={!isActive ? onActivate : undefined}
     >
+      {subtitle && <p className="m-0 text-center text-sm font-medium leading-snug text-zinc-700">{subtitle}</p>}
+
       {coverUrl && (
         <img
           src={coverUrl}
-          alt={displayName}
-          className="block max-w-full max-h-[400px] w-auto h-auto rounded"
+          alt={subtitle ?? 'Carátula de audio'}
+          className="audio-card__cover block h-auto w-full rounded object-contain"
           loading="lazy"
         />
       )}
-
-      <p className="m-0 text-sm font-medium">{displayName}</p>
 
       {/* Audio element — always in the DOM; controls and visibility follow isActive */}
       <audio
@@ -96,10 +148,6 @@ function AudioPlayerPlaceholder({ itemId, audioUrl, audioKey, coverUrl, isActive
         <source src={audioUrl} />
         Tu navegador no soporta reproducción de audio.
       </audio>
-
-      {isActive && (
-        <p className="m-0 truncate text-xs text-zinc-500">{audioKey ?? audioUrl ?? '—'}</p>
-      )}
     </div>
   )
 }

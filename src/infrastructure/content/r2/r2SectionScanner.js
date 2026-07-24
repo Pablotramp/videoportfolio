@@ -174,10 +174,15 @@ function classifyFolder(baseUrl, keys, folderPrefix) {
   if (audioFiles.length > 0) {
     // Build a lookup set of image files for O(1) cover detection.
     const imageFileSet = new Set(directFiles.filter((f) => IMAGE_EXTENSIONS.has(getExtension(f))))
+    const jsonFileSet = new Set(directFiles.filter((f) => isJsonKey(f)))
 
     const items = audioFiles.map((filename) => {
       const baseName = getBaseName(filename)
       const audioKey = `${folderPrefix}${filename}`
+      const metadataFilename = `${baseName}.json`
+      const metadataKey = jsonFileSet.has(metadataFilename)
+        ? `${folderPrefix}${metadataFilename}`
+        : null
 
       // Look for a cover image whose base name matches the audio file (homónima).
       let coverKey = null
@@ -194,6 +199,8 @@ function classifyFolder(baseUrl, keys, folderPrefix) {
         itemType: 'audio',
         audioKey,
         audioUrl: toObjectUrl(baseUrl, audioKey),
+        metadataKey,
+        metadataUrl: metadataKey ? toObjectUrl(baseUrl, metadataKey) : null,
         coverKey,
         coverUrl: coverKey ? toObjectUrl(baseUrl, coverKey) : null,
       }

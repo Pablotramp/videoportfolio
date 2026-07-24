@@ -171,13 +171,14 @@ function SeccionPage({ sections, r2BaseUrl, sectionManifest, manifestFiles }) {
 
           {/* Audio items (type 'folder' with audio files) */}
           {!loading && !error && contentType === 'audio' && items.length > 0 && (
-            <ul className="m-0 grid list-none gap-4 p-0">
+            <ul className="audio-gallery m-0 flex list-none flex-wrap justify-center gap-4 p-0">
               {items.map((item) => (
                 <li key={item.id}>
                   <AudioPlayerPlaceholder
                     itemId={item.id}
                     audioUrl={item.audioUrl}
-                    audioKey={item.audioKey}
+                    itemTitle={item.title ?? null}
+                    metadataUrl={item.metadataUrl ?? null}
                     coverUrl={item.coverUrl ?? null}
                     isActive={activeAudioId === item.id}
                     onActivate={() => setActiveAudio({ slug, id: item.id })}
