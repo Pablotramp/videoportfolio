@@ -72,10 +72,21 @@ async function resolveSectionImageKey(baseUrl, section, resolver, hasListing) {
 function mergeManifestImageKeys(sectionImages, manifestFiles) {
   const safeSectionImages =
     sectionImages && typeof sectionImages === 'object' ? sectionImages : {}
-  return [...new Set([...Object.values(safeSectionImages), ...manifestFiles])].filter((value) => {
-    if (typeof value !== 'string') return false
-    return value.trim().length > 0
-  })
+  const mergedKeys = []
+  const seenKeys = new Set()
+
+  function addKey(value) {
+    if (typeof value !== 'string') return
+    const normalized = value.trim()
+    if (!normalized || seenKeys.has(normalized)) return
+    seenKeys.add(normalized)
+    mergedKeys.push(normalized)
+  }
+
+  for (const value of Object.values(safeSectionImages)) addKey(value)
+  for (const value of manifestFiles) addKey(value)
+
+  return mergedKeys
 }
 
 function getMappedSectionImageKey(sectionImages, imgName) {
@@ -124,10 +135,9 @@ function resolveImagesFromManifest(baseUrl, sections, sectionImages, manifestFil
       console.warn(
         `[r2:manifest:image] "${section.section ?? imgName}" — portada "${imgName}" no encontrada en manifest. Usando convención.`,
       )
-      const fallbackCandidate =
-        typeof sectionCandidates[0] === 'string' && sectionCandidates[0].trim()
-          ? sectionCandidates[0].trim()
-          : imgName
+      const rawFallbackCandidate =
+        typeof sectionCandidates[0] === 'string' ? sectionCandidates[0].trim() : ''
+      const fallbackCandidate = rawFallbackCandidate || imgName
       result[imgName] = toObjectUrl(baseUrl, fallbackCandidate)
     }
   }
