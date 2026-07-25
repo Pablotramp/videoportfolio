@@ -10,7 +10,6 @@ const SWIPE_HINT_DURATION_MS = 2400
 const WHEEL_DEBOUNCE_MS = 550
 const WHEEL_DELTA_THRESHOLD = 8
 const PRIMARY_MOUSE_BUTTON = 0
-const PROFILE_AVATAR_TOP_OFFSET = '-2rem'
 const ALLOWED_SOCIAL_SCHEMES = new Set(['https:', 'http:'])
 
 /**
@@ -110,7 +109,7 @@ function ReelSlide({ item, isActive, isMuted, onPlay, onPause, onEnded, slideRef
         if (!response.ok) return
         if (cancelled) return
         const json = await response.json()
-        const folderPrefix = item.hlsManifestUrl ? getFolderPrefix(item.hlsManifestUrl) : ''
+        const metadataFolderPrefix = item.hlsMetadataUrl ? getFolderPrefix(item.hlsMetadataUrl) : ''
         const rawImg = typeof json.socialMediaImg === 'string' ? json.socialMediaImg.trim() : ''
         const safeImg = sanitizeImageFilename(rawImg)
         const rawLink = typeof json.socialMedia === 'string' ? json.socialMedia.trim() : ''
@@ -118,7 +117,7 @@ function ReelSlide({ item, isActive, isMuted, onPlay, onPause, onEnded, slideRef
           setReelMeta({
             epilogue: typeof json.epilogue === 'string' ? json.epilogue.trim() : '',
             socialMedia: sanitizeSocialUrl(rawLink),
-            socialMediaImgUrl: buildSafeImageUrl(folderPrefix, safeImg),
+            socialMediaImgUrl: buildSafeImageUrl(metadataFolderPrefix, safeImg),
           })
         }
       } catch {
@@ -204,9 +203,9 @@ function ReelSlide({ item, isActive, isMuted, onPlay, onPause, onEnded, slideRef
           />
         </div>
 
-        {/* Profile avatar — top-left corner, half outside the top edge */}
+        {/* Profile avatar — top-left corner inside the video */}
         {hasProfileImg && (
-          <div className="absolute left-3 z-10" style={{ top: PROFILE_AVATAR_TOP_OFFSET }}>
+          <div className="absolute top-3 left-3 z-10">
             {socialLink ? (
               <a
                 href={socialLink}
