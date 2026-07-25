@@ -99,7 +99,7 @@ function ReelSlide({ item, isActive, isMuted, onPlay, onPause, onEnded, slideRef
 export default function ReelFeed({ items }) {
   const itemCount = Array.isArray(items) ? items.length : 0
   const [activeIndex, setActiveIndex] = useState(0)
-  const [showSwipeHint, setShowSwipeHint] = useState(itemCount > 1)
+  const [showSwipeHint, setShowSwipeHint] = useState(() => itemCount > 1)
   // activeIndexRef mirrors activeIndex so scroll/timer callbacks can read the
   // current index without becoming stale closures that require re-registration.
   const activeIndexRef = useRef(0)
@@ -122,18 +122,13 @@ export default function ReelFeed({ items }) {
   const isPlaybackReady = !showSwipeHint
 
   useEffect(() => {
-    if (itemCount <= 1) {
-      setShowSwipeHint(false)
-      return undefined
-    }
-
-    setShowSwipeHint(true)
+    if (!showSwipeHint) return undefined
     const timer = setTimeout(() => {
       setShowSwipeHint(false)
     }, SWIPE_HINT_DURATION_MS)
 
     return () => clearTimeout(timer)
-  }, [itemCount])
+  }, [showSwipeHint])
 
   const updateIndex = useCallback((index) => {
     activeIndexRef.current = index

@@ -124,7 +124,7 @@ function SeccionPage({ sections, r2BaseUrl, sectionManifest, manifestFiles }) {
       )}
 
       {/* Reel-type sections: vertical scrolling feed — no padding wrapper */}
-      {isReelFeed && <ReelFeed items={items} />}
+      {isReelFeed && <ReelFeed key={slug} items={items} />}
 
       {/* All other states / content types use a padded container that also
           provides clearance so content never slides under the fixed footer. */}
