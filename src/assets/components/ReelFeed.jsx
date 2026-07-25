@@ -101,7 +101,8 @@ function ReelSlide({ item, isActive, isMuted, onPlay, onPause, onEnded, slideRef
  * @param {{ items: Array<{ id: string, hlsManifestUrl: string }> }} props
  */
 export default function ReelFeed({ items }) {
-  const itemCount = Array.isArray(items) ? items.length : 0
+  const normalizedItems = Array.isArray(items) ? items : []
+  const itemCount = normalizedItems.length
   const [activeIndex, setActiveIndex] = useState(0)
   // activeIndexRef mirrors activeIndex so scroll/timer callbacks can read the
   // current index without becoming stale closures that require re-registration.
@@ -125,9 +126,9 @@ export default function ReelFeed({ items }) {
 
   const soundToggleLabel = isMuted ? 'Activar sonido' : 'Silenciar'
   const swipeHintKey = useMemo(() => {
-    if (!Array.isArray(items) || itemCount <= 1 || PREFERS_REDUCED_MOTION) return null
-    return items.map((item, index) => item.id ?? `slide-${index}`).join('|')
-  }, [itemCount, items])
+    if (itemCount <= 1 || PREFERS_REDUCED_MOTION) return null
+    return normalizedItems.map((item, index) => item.id ?? `slide-${index}`).join('|')
+  }, [itemCount, normalizedItems])
   const showSwipeHint = swipeHintKey !== null && dismissedSwipeHintKey !== swipeHintKey
   const isPlaybackReady = !showSwipeHint
 
@@ -320,7 +321,7 @@ export default function ReelFeed({ items }) {
     }
   }, [])
 
-  if (!Array.isArray(items) || items.length === 0) return null
+  if (itemCount === 0) return null
 
   return (
     <div className="relative w-full">
@@ -342,7 +343,7 @@ export default function ReelFeed({ items }) {
         onPointerUp={handlePointerEnd}
         onPointerCancel={handlePointerEnd}
       >
-        {items.map((item, index) => (
+        {normalizedItems.map((item, index) => (
           <ReelSlide
             key={item.id}
             slideRef={(node) => {
