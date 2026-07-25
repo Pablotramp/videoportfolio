@@ -10,6 +10,40 @@ const SWIPE_HINT_DURATION_MS = 2400
 const WHEEL_DEBOUNCE_MS = 550
 const WHEEL_DELTA_THRESHOLD = 8
 const PRIMARY_MOUSE_BUTTON = 0
+const PROFILE_AVATAR_TOP_OFFSET = '-2rem'
+const ALLOWED_SOCIAL_SCHEMES = new Set(['https:', 'http:'])
+
+/**
+ * Returns the URL only if its scheme is http or https, otherwise null.
+ * Prevents javascript: URIs and other potentially malicious schemes.
+ *
+ * @param {string} url
+ * @returns {string|null}
+ */
+function sanitizeSocialUrl(url) {
+  if (!url) return null
+  try {
+    return ALLOWED_SOCIAL_SCHEMES.has(new URL(url).protocol) ? url : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Returns the filename only when it looks like a safe bare filename
+ * (no path separators, no leading dots that indicate traversal).
+ *
+ * @param {string} name
+ * @returns {string}
+ */
+function sanitizeImageFilename(name) {
+  // Reject anything containing a slash/backslash (path traversal)
+  if (!name || name.includes('/') || name.includes('\\')) return ''
+  // Reject sequences like ".." that could escape the folder
+  if (name.includes('..')) return ''
+  return name
+}
+
 const PREFERS_REDUCED_MOTION =
   typeof window !== 'undefined' &&
   typeof window.matchMedia === 'function' &&
@@ -55,11 +89,13 @@ function ReelSlide({ item, isActive, isMuted, onPlay, onPause, onEnded, slideRef
         const json = await response.json()
         const folderPrefix = getFolderPrefix(item.hlsMetadataUrl)
         const rawImg = typeof json.socialMediaImg === 'string' ? json.socialMediaImg.trim() : ''
+        const safeImg = sanitizeImageFilename(rawImg)
+        const rawLink = typeof json.socialMedia === 'string' ? json.socialMedia.trim() : ''
         if (!cancelled) {
           setReelMeta({
             epilogue: typeof json.epilogue === 'string' ? json.epilogue.trim() : '',
-            socialMedia: typeof json.socialMedia === 'string' ? json.socialMedia.trim() : '',
-            socialMediaImgUrl: rawImg ? `${folderPrefix}${rawImg}` : '',
+            socialMedia: sanitizeSocialUrl(rawLink),
+            socialMediaImgUrl: safeImg ? `${folderPrefix}${safeImg}` : '',
           })
         }
       } catch {
@@ -147,7 +183,7 @@ function ReelSlide({ item, isActive, isMuted, onPlay, onPause, onEnded, slideRef
 
         {/* Profile avatar — top-left corner, half outside the top edge */}
         {hasProfileImg && (
-          <div className="absolute left-3 z-10" style={{ top: '-2rem' }}>
+          <div className="absolute left-3 z-10" style={{ top: PROFILE_AVATAR_TOP_OFFSET }}>
             {socialLink ? (
               <a
                 href={socialLink}
