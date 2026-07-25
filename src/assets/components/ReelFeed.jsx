@@ -126,7 +126,7 @@ export default function ReelFeed({ items }) {
   const soundToggleLabel = isMuted ? 'Activar sonido' : 'Silenciar'
   const swipeHintKey = useMemo(() => {
     if (!Array.isArray(items) || itemCount <= 1 || PREFERS_REDUCED_MOTION) return null
-    return items.map((item) => item.id).join('|')
+    return items.map((item, index) => item.id ?? `slide-${index}`).join('|')
   }, [itemCount, items])
   const showSwipeHint = swipeHintKey !== null && dismissedSwipeHintKey !== swipeHintKey
   const isPlaybackReady = !showSwipeHint
@@ -360,7 +360,7 @@ export default function ReelFeed({ items }) {
 
       {itemCount > 1 && (
         <p id={swipeHintDescriptionId} className="sr-only">
-          Desliza lateralmente para cambiar de vídeo.
+          Desliza lateralmente para cambiar de video.
         </p>
       )}
 
