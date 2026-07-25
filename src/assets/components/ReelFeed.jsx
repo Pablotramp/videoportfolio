@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import Hls from 'hls.js'
 
 const HEADER_HEIGHT_PX = 64
@@ -103,15 +103,12 @@ function ReelSlide({ item, isActive, isMuted, onPlay, onPause, onEnded, slideRef
 export default function ReelFeed({ items }) {
   const itemCount = Array.isArray(items) ? items.length : 0
   const [activeIndex, setActiveIndex] = useState(0)
-  const [showSwipeHint, setShowSwipeHint] = useState(
-    () => Array.isArray(items) && items.length > 1 && !PREFERS_REDUCED_MOTION,
-  )
   // activeIndexRef mirrors activeIndex so scroll/timer callbacks can read the
   // current index without becoming stale closures that require re-registration.
   const activeIndexRef = useRef(0)
+  const [dismissedSwipeHintKey, setDismissedSwipeHintKey] = useState(null)
   const [isVideoPlaying, setIsVideoPlaying] = useState(false)
   const [isMuted, setIsMuted] = useState(true)
-  const [prefersReducedMotion] = useState(PREFERS_REDUCED_MOTION)
   const [supportsFinePointer] = useState(SUPPORTS_FINE_POINTER)
   const swipeHintDescriptionId = useId()
 
@@ -127,17 +124,21 @@ export default function ReelFeed({ items }) {
   })
 
   const soundToggleLabel = isMuted ? 'Activar sonido' : 'Silenciar'
+  const swipeHintKey = useMemo(() => {
+    if (!Array.isArray(items) || itemCount <= 1 || PREFERS_REDUCED_MOTION) return null
+    return items.map((item) => item.id).join('|')
+  }, [itemCount, items])
+  const showSwipeHint = swipeHintKey !== null && dismissedSwipeHintKey !== swipeHintKey
   const isPlaybackReady = !showSwipeHint
 
   useEffect(() => {
-    if (prefersReducedMotion) return undefined
-    if (!showSwipeHint) return undefined
+    if (!showSwipeHint || swipeHintKey === null) return undefined
     const timer = setTimeout(() => {
-      setShowSwipeHint(false)
+      setDismissedSwipeHintKey(swipeHintKey)
     }, SWIPE_HINT_DURATION_MS)
 
     return () => clearTimeout(timer)
-  }, [prefersReducedMotion, showSwipeHint])
+  }, [showSwipeHint, swipeHintKey])
 
   const updateIndex = useCallback((index) => {
     activeIndexRef.current = index
