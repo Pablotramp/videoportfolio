@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import Hls from 'hls.js'
 
 const HEADER_HEIGHT_PX = 64
@@ -106,6 +106,7 @@ export default function ReelFeed({ items }) {
   const [isVideoPlaying, setIsVideoPlaying] = useState(false)
   const [isMuted, setIsMuted] = useState(true)
   const [supportsFinePointer] = useState(SUPPORTS_FINE_POINTER)
+  const swipeHintDescriptionId = useId()
 
   const sliderRef = useRef(null)
   const slideRefs = useRef([])
@@ -324,6 +325,7 @@ export default function ReelFeed({ items }) {
         role="region"
         aria-label="Carrusel de videos"
         aria-live="polite"
+        aria-describedby={itemCount > 1 ? swipeHintDescriptionId : undefined}
         tabIndex={0}
         onKeyDown={handleKeyboardNavigation}
         onPointerDown={handlePointerDown}
@@ -346,6 +348,12 @@ export default function ReelFeed({ items }) {
           />
         ))}
       </div>
+
+      {itemCount > 1 && (
+        <p id={swipeHintDescriptionId} className="sr-only">
+          Desliza lateralmente para cambiar de vídeo.
+        </p>
+      )}
 
       {showSwipeHint && (
         <div
