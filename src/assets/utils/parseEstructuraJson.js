@@ -5,6 +5,7 @@
  * ─────────────────────────────────
  *   {
  *     "title": string,           // Site title — also rendered in the intro screen
+ *     "favicon"?: string,        // Favicon filename at the bucket root (e.g. "favicon.png")
  *     "sections": [
  *       {
  *         "section": string,     // Display label shown in menu and slicer
@@ -44,6 +45,7 @@
 export const RESERVED_METADATA_FIELDS = new Set(['title', 'img'])
 const EMPTY_PARSED_ESTRUCTURA = Object.freeze({
   siteTitle: null,
+  favicon: null,
   sections: [],
   footer: null,
   loadingImg: null,
@@ -115,6 +117,7 @@ function resolveSectionType(entry) {
  * @param {unknown} raw - Parsed JSON object (or null/undefined if file is absent)
  * @returns {{
  *   siteTitle: string | null,
+ *   favicon: string | null,
  *   sections: Array<{
  *     index: number,
  *     label: string,
@@ -139,6 +142,8 @@ export function parseEstructuraJson(raw) {
 
   const siteTitle =
     typeof raw.title === 'string' && raw.title.trim() ? raw.title.trim() : null
+
+  const favicon = normalizeString(raw.favicon)
 
   const sections = Array.isArray(raw.sections)
     ? raw.sections.flatMap((entry, index) => {
@@ -191,5 +196,5 @@ export function parseEstructuraJson(raw) {
       }
     : null
 
-  return { siteTitle, sections, footer, loadingImg, loading }
+  return { siteTitle, favicon, sections, footer, loadingImg, loading }
 }

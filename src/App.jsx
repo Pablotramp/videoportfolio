@@ -23,6 +23,25 @@ function App() {
     : null
   const isSectionPage = currentSection !== null
 
+  // Update document title from _estructura.json
+  useEffect(() => {
+    if (portfolio.siteTitle) {
+      document.title = portfolio.siteTitle
+    }
+  }, [portfolio.siteTitle])
+
+  // Update favicon from _estructura.json when faviconUrl is available
+  useEffect(() => {
+    if (!portfolio.faviconUrl) return
+    let link = document.querySelector("link[rel~='icon']")
+    if (!link) {
+      link = document.createElement('link')
+      link.rel = 'icon'
+      document.head.appendChild(link)
+    }
+    link.href = portfolio.faviconUrl
+  }, [portfolio.faviconUrl])
+
   let content = (
     <Routes>
       <Route path="/" element={<Home sections={portfolio.sections} />} />

@@ -12,6 +12,7 @@ const DEFAULT_PORTFOLIO = {
   loadingChargeTime: null,
   loadingTextColor: null,
   loadingBackgroundColor: null,
+  faviconUrl: null,
 }
 
 export function usePortfolio(source) {

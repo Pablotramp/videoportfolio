@@ -203,27 +203,31 @@ function ReelSlide({ item, isActive, isMuted, onPlay, onPause, onEnded, slideRef
           />
         </div>
 
-        {/* Profile avatar — top-left corner inside the video */}
+        {/* Profile avatar + social link — top-left corner inside the video */}
         {hasProfileImg && (
-          <div className="absolute top-3 left-3 z-10">
+          <div className="absolute top-3 left-3 z-10 flex items-center gap-2">
             {socialLink ? (
               <a
                 href={socialLink}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Perfil en redes sociales"
+                className="flex items-center gap-2"
               >
                 <img
                   src={reelMeta.socialMediaImgUrl}
                   alt="Perfil"
-                  className="h-16 w-16 rounded-full border-2 border-white object-cover shadow-md"
+                  className="h-24 w-24 rounded-full border-2 border-white object-cover shadow-md"
                 />
+                <span className="max-w-[10rem] truncate rounded bg-black/40 px-2 py-0.5 text-xs font-medium text-white backdrop-blur-sm">
+                  {socialLink.replace(/^https?:\/\//, '')}
+                </span>
               </a>
             ) : (
               <img
                 src={reelMeta.socialMediaImgUrl}
                 alt="Perfil"
-                className="h-16 w-16 rounded-full border-2 border-white object-cover shadow-md"
+                className="h-24 w-24 rounded-full border-2 border-white object-cover shadow-md"
               />
             )}
           </div>
