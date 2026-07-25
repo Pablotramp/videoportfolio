@@ -54,15 +54,15 @@ const SUPPORTS_FINE_POINTER =
   window.matchMedia('(hover: hover) and (pointer: fine)').matches
 
 /**
- * Derives the folder URL prefix from a metadata URL.
- * e.g. "https://r2.example.com/reels/Video/Video.json" → "https://r2.example.com/reels/Video/"
+ * Derives the folder URL prefix from a file URL.
+ * e.g. "https://r2.example.com/reels/Video/master.m3u8" → "https://r2.example.com/reels/Video/"
  *
- * @param {string} metadataUrl
+ * @param {string} fileUrl
  * @returns {string}
  */
-function getFolderPrefix(metadataUrl) {
-  const lastSlash = metadataUrl.lastIndexOf('/')
-  return lastSlash >= 0 ? metadataUrl.slice(0, lastSlash + 1) : ''
+function getFolderPrefix(fileUrl) {
+  const lastSlash = fileUrl.lastIndexOf('/')
+  return lastSlash >= 0 ? fileUrl.slice(0, lastSlash + 1) : ''
 }
 
 /**
@@ -87,7 +87,7 @@ function ReelSlide({ item, isActive, isMuted, onPlay, onPause, onEnded, slideRef
         const response = await fetch(item.hlsMetadataUrl)
         if (!response.ok) return
         const json = await response.json()
-        const folderPrefix = getFolderPrefix(item.hlsMetadataUrl)
+        const folderPrefix = getFolderPrefix(item.hlsManifestUrl || item.hlsMetadataUrl)
         const rawImg = typeof json.socialMediaImg === 'string' ? json.socialMediaImg.trim() : ''
         const safeImg = sanitizeImageFilename(rawImg)
         const rawLink = typeof json.socialMedia === 'string' ? json.socialMedia.trim() : ''
@@ -107,7 +107,7 @@ function ReelSlide({ item, isActive, isMuted, onPlay, onPause, onEnded, slideRef
     return () => {
       cancelled = true
     }
-  }, [item.hlsMetadataUrl])
+  }, [item.hlsMetadataUrl, item.hlsManifestUrl])
 
   // Attach HLS source once
   useEffect(() => {
