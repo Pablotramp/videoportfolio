@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
 import MainLayout from './assets/layouts/MainLayout.jsx'
 import { usePortfolio } from './application/portfolio/usePortfolio.js'
@@ -6,10 +6,13 @@ import Home from './pages/Home.jsx'
 import IntroPage from './pages/IntroPage.jsx'
 import SeccionPage from './pages/SeccionPage.jsx'
 
+const INTRO_FADE_OUT_DURATION_MS = 500
+
 function App() {
   const portfolio = usePortfolio()
   const location = useLocation()
   const [showIntro, setShowIntro] = useState(true)
+  const [introExiting, setIntroExiting] = useState(false)
 
   const isHome = location.pathname === '/'
   const isFullBleedHome = !portfolio.loading && !portfolio.error && isHome
@@ -50,11 +53,35 @@ function App() {
     )
   }
 
+  const dismissIntro = useCallback(() => {
+    setIntroExiting(true)
+  }, [])
+
+  useEffect(() => {
+    if (!introExiting) return
+    const timeoutId = window.setTimeout(() => {
+      setShowIntro(false)
+    }, INTRO_FADE_OUT_DURATION_MS)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [introExiting])
+
   return (
     <>
       {/* Intro screen: shown once on initial load while siteTitle is available */}
       {showIntro && !portfolio.loading && hasSiteTitle && (
-        <IntroPage title={portfolio.siteTitle} loadingImg={portfolio.loadingImg} onDismiss={() => setShowIntro(false)} />
+        <IntroPage
+          title={portfolio.siteTitle}
+          loadingImg={portfolio.loadingImg}
+          chargeTime={portfolio.loadingChargeTime}
+          textColor={portfolio.loadingTextColor}
+          backgroundColor={portfolio.loadingBackgroundColor}
+          fadeOutDurationMs={INTRO_FADE_OUT_DURATION_MS}
+          isExiting={introExiting}
+          onDismiss={dismissIntro}
+        />
       )}
       <MainLayout
         footer={portfolio.footer}

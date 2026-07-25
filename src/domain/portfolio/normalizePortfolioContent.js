@@ -67,5 +67,8 @@ export function normalizePortfolioContent(rawContent = {}) {
     sectionManifest: manifestSections,
     manifestFiles,
     loadingImg: loadingImgUrl,
+    loadingChargeTime: parsedJson.loading?.chargeTime ?? null,
+    loadingTextColor: parsedJson.loading?.textColor ?? null,
+    loadingBackgroundColor: parsedJson.loading?.backgroundColor ?? null,
   }
 }

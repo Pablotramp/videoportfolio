@@ -9,6 +9,9 @@ const DEFAULT_PORTFOLIO = {
   r2BaseUrl: null,
   sectionManifest: null,
   loadingImg: null,
+  loadingChargeTime: null,
+  loadingTextColor: null,
+  loadingBackgroundColor: null,
 }
 
 export function usePortfolio(source) {

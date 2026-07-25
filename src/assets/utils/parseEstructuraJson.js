@@ -23,7 +23,10 @@
  *       "links"?: [{ "href": string, "label"?: string }]
  *     },
  *     "carga": {                 // Splash/intro screen — all optional
- *       "img"?: string           // Filename of the image shown on the intro screen (e.g. a GIF)
+ *       "img"?: string,          // Filename of the image shown on the intro screen (e.g. a GIF)
+ *       "chargeTime"?: number,   // Seconds visible before auto-dismiss
+ *       "textColor"?: string,    // Hex color for intro text
+ *       "backgroundColor"?: string // Hex color for intro background
  *     }
  *   }
  *
@@ -39,19 +42,56 @@
  */
 
 export const RESERVED_METADATA_FIELDS = new Set(['title', 'img'])
+const EMPTY_PARSED_ESTRUCTURA = Object.freeze({
+  siteTitle: null,
+  sections: [],
+  footer: null,
+  loadingImg: null,
+  loading: null,
+})
 
 /**
- * Normalize a backgroundColor value by ensuring it starts with '#'.
+ * Normalize a string by trimming and returning null if empty/non-string.
+ *
+ * @param {unknown} value
+ * @returns {string | null}
+ */
+function normalizeString(value) {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  return trimmed ? trimmed : null
+}
+
+/**
+ * Normalize a hexadecimal color value by ensuring it starts with '#'.
  * Returns null if the value is blank or non-string.
  *
  * @param {unknown} value
  * @returns {string | null}
  */
-function normalizeColor(value) {
-  if (!value || typeof value !== 'string') return null
-  const trimmed = value.trim()
+function normalizeHexColor(value) {
+  const trimmed = normalizeString(value)
   if (!trimmed) return null
   return trimmed.startsWith('#') ? trimmed : `#${trimmed}`
+}
+
+/**
+ * Normalize chargeTime to seconds.
+ * Returns null if the value is invalid.
+ *
+ * @param {unknown} value
+ * @returns {number | null}
+ */
+function normalizeChargeTime(value) {
+  const numericValue =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string'
+        ? Number.parseFloat(value)
+        : Number.NaN
+
+  if (!Number.isFinite(numericValue) || numericValue < 0) return null
+  return numericValue
 }
 
 /**
@@ -84,12 +124,17 @@ function resolveSectionType(entry) {
  *     backgroundColor: string | null
  *   }>,
  *   footer: object | null,
- *   loadingImg: string | null
+ *   loadingImg: string | null,
+ *   loading: {
+ *     chargeTime: number | null,
+ *     textColor: string | null,
+ *     backgroundColor: string | null
+ *   } | null
  * }}
  */
 export function parseEstructuraJson(raw) {
   if (!raw || typeof raw !== 'object') {
-    return { siteTitle: null, sections: [], footer: null }
+    return { ...EMPTY_PARSED_ESTRUCTURA }
   }
 
   const siteTitle =
@@ -119,7 +164,7 @@ export function parseEstructuraJson(raw) {
               origin,
               type,
               img: typeof entry.img === 'string' ? entry.img.trim() : '',
-              backgroundColor: normalizeColor(entry.backgroundColor),
+              backgroundColor: normalizeHexColor(entry.backgroundColor),
             },
           ]
         } catch {
@@ -131,10 +176,20 @@ export function parseEstructuraJson(raw) {
   const footer =
     raw.footer && typeof raw.footer === 'object' ? raw.footer : null
 
+  const carga = raw.carga && typeof raw.carga === 'object' ? raw.carga : null
+
   const loadingImg =
-    raw.carga && typeof raw.carga === 'object' && typeof raw.carga.img === 'string'
-      ? raw.carga.img.trim() || null
+    carga
+      ? normalizeString(carga.img)
       : null
 
-  return { siteTitle, sections, footer, loadingImg }
+  const loading = carga
+    ? {
+        chargeTime: normalizeChargeTime(carga.chargeTime),
+        textColor: normalizeHexColor(carga.textColor),
+        backgroundColor: normalizeHexColor(carga.backgroundColor),
+      }
+    : null
+
+  return { siteTitle, sections, footer, loadingImg, loading }
 }
