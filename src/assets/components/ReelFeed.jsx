@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import Hls from 'hls.js'
 
 const HEADER_HEIGHT_PX = 64
@@ -6,9 +6,14 @@ const DEFAULT_FOOTER_HEIGHT_PX = 41
 const SLIDE_HEIGHT = `calc(100dvh - ${HEADER_HEIGHT_PX}px - var(--footer-h, ${DEFAULT_FOOTER_HEIGHT_PX}px))`
 const SLIDE_HEIGHT_STYLE = { height: SLIDE_HEIGHT }
 const AUTO_ADVANCE_MS = 5000
+const SWIPE_HINT_DURATION_MS = 2400
 const WHEEL_DEBOUNCE_MS = 550
 const WHEEL_DELTA_THRESHOLD = 8
 const PRIMARY_MOUSE_BUTTON = 0
+const PREFERS_REDUCED_MOTION =
+  typeof window !== 'undefined' &&
+  typeof window.matchMedia === 'function' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches
 const SUPPORTS_FINE_POINTER =
   typeof window !== 'undefined' &&
   typeof window.matchMedia === 'function' &&
@@ -96,13 +101,17 @@ function ReelSlide({ item, isActive, isMuted, onPlay, onPause, onEnded, slideRef
  * @param {{ items: Array<{ id: string, hlsManifestUrl: string }> }} props
  */
 export default function ReelFeed({ items }) {
+  const normalizedItems = useMemo(() => (Array.isArray(items) ? items : []), [items])
+  const itemCount = normalizedItems.length
   const [activeIndex, setActiveIndex] = useState(0)
   // activeIndexRef mirrors activeIndex so scroll/timer callbacks can read the
   // current index without becoming stale closures that require re-registration.
   const activeIndexRef = useRef(0)
+  const [dismissedSwipeHintKey, setDismissedSwipeHintKey] = useState(null)
   const [isVideoPlaying, setIsVideoPlaying] = useState(false)
   const [isMuted, setIsMuted] = useState(true)
   const [supportsFinePointer] = useState(SUPPORTS_FINE_POINTER)
+  const swipeHintDescriptionId = useId()
 
   const sliderRef = useRef(null)
   const slideRefs = useRef([])
@@ -115,8 +124,22 @@ export default function ReelFeed({ items }) {
     pointerId: null,
   })
 
-  const itemCount = Array.isArray(items) ? items.length : 0
   const soundToggleLabel = isMuted ? 'Activar sonido' : 'Silenciar'
+  const swipeHintKey = useMemo(() => {
+    if (itemCount <= 1 || PREFERS_REDUCED_MOTION) return null
+    return normalizedItems.map((item, index) => item.id ?? `slide-${index}`).join('|')
+  }, [itemCount, normalizedItems])
+  const showSwipeHint = swipeHintKey !== null && dismissedSwipeHintKey !== swipeHintKey
+  const isPlaybackReady = !showSwipeHint
+
+  useEffect(() => {
+    if (!showSwipeHint || swipeHintKey === null) return undefined
+    const timer = setTimeout(() => {
+      setDismissedSwipeHintKey(swipeHintKey)
+    }, SWIPE_HINT_DURATION_MS)
+
+    return () => clearTimeout(timer)
+  }, [showSwipeHint, swipeHintKey])
 
   const updateIndex = useCallback((index) => {
     activeIndexRef.current = index
@@ -229,13 +252,13 @@ export default function ReelFeed({ items }) {
   // Auto-advance timer — suspended while a video is actively playing.
   // Wraps around to slide 0 so the carousel loops continuously (same as Home.jsx).
   useEffect(() => {
-    if (isVideoPlaying || itemCount <= 1) return undefined
+    if (!isPlaybackReady || isVideoPlaying || itemCount <= 1) return undefined
     const timer = setInterval(() => {
       const next = (activeIndexRef.current + 1) % itemCount
       scrollToIndex(next)
     }, AUTO_ADVANCE_MS)
     return () => clearInterval(timer)
-  }, [isVideoPlaying, itemCount, scrollToIndex])
+  }, [isPlaybackReady, isVideoPlaying, itemCount, scrollToIndex])
 
   const handlePlay = useCallback(() => {
     setIsVideoPlaying(true)
@@ -298,7 +321,7 @@ export default function ReelFeed({ items }) {
     }
   }, [])
 
-  if (!Array.isArray(items) || items.length === 0) return null
+  if (itemCount === 0) return null
 
   return (
     <div className="relative w-full">
@@ -312,6 +335,7 @@ export default function ReelFeed({ items }) {
         role="region"
         aria-label="Carrusel de videos"
         aria-live="polite"
+        aria-describedby={itemCount > 1 ? swipeHintDescriptionId : undefined}
         tabIndex={0}
         onKeyDown={handleKeyboardNavigation}
         onPointerDown={handlePointerDown}
@@ -319,14 +343,14 @@ export default function ReelFeed({ items }) {
         onPointerUp={handlePointerEnd}
         onPointerCancel={handlePointerEnd}
       >
-        {items.map((item, index) => (
+        {normalizedItems.map((item, index) => (
           <ReelSlide
             key={item.id}
             slideRef={(node) => {
               slideRefs.current[index] = node
             }}
             item={item}
-            isActive={index === activeIndex}
+            isActive={index === activeIndex && isPlaybackReady}
             isMuted={isMuted}
             onPlay={handlePlay}
             onPause={handlePause}
@@ -334,6 +358,45 @@ export default function ReelFeed({ items }) {
           />
         ))}
       </div>
+
+      {itemCount > 1 && (
+        <p id={swipeHintDescriptionId} className="sr-only">
+          Desliza lateralmente para cambiar de video.
+        </p>
+      )}
+
+      {showSwipeHint && (
+        <div
+          aria-hidden="true"
+          className="reel-swipe-hint pointer-events-none absolute inset-0 z-40 flex items-center justify-center"
+        >
+          <div className="reel-swipe-hint__icon rounded-full border border-white/20 bg-black/35 p-6 text-white shadow-[0_0_50px_rgba(0,0,0,0.35)] backdrop-blur-sm">
+            <svg width="96" height="96" viewBox="0 0 96 96" fill="none">
+              <path
+                d="M30 48h36"
+                stroke="currentColor"
+                strokeWidth="6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M41 34 27 48l14 14"
+                stroke="currentColor"
+                strokeWidth="6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="m55 34 14 14-14 14"
+                stroke="currentColor"
+                strokeWidth="6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+        </div>
+      )}
 
       {/* Global mute / unmute button — fixed to the bottom-right of the viewport */}
       <button
