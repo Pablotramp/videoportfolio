@@ -12,7 +12,7 @@
  *   - Clic o toque en cualquier parte → se cierra la intro.
  *   - Tecla Enter o Escape → se cierra la intro.
  */
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 
 const DEFAULT_INTRO_DISMISS_TIMEOUT_MS = 5000
 
@@ -22,9 +22,13 @@ function IntroPage({ title, loadingImg, chargeTime, textColor, backgroundColor, 
   const dismissedRef = useRef(false)
   const dismissTimeoutIdRef = useRef(null)
 
-  const dismissTimeoutMs = Number.isFinite(chargeTime)
-    ? Math.max(0, chargeTime * 1000)
-    : DEFAULT_INTRO_DISMISS_TIMEOUT_MS
+  const dismissTimeoutMs = useMemo(
+    () =>
+      Number.isFinite(chargeTime)
+        ? Math.max(0, chargeTime * 1000)
+        : DEFAULT_INTRO_DISMISS_TIMEOUT_MS,
+    [chargeTime],
+  )
 
   useEffect(() => {
     onDismissRef.current = onDismiss
@@ -65,8 +69,8 @@ function IntroPage({ title, loadingImg, chargeTime, textColor, backgroundColor, 
       role="button"
       tabIndex={0}
       style={{
-        backgroundColor: backgroundColor ?? undefined,
-        color: textColor ?? undefined,
+        backgroundColor,
+        color: textColor,
       }}
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === 'Escape' || event.key === ' ') {

@@ -158,19 +158,20 @@ export function parseEstructuraJson(raw) {
   const footer =
     raw.footer && typeof raw.footer === 'object' ? raw.footer : null
 
+  const carga = raw.carga && typeof raw.carga === 'object' ? raw.carga : null
+
   const loadingImg =
-    raw.carga && typeof raw.carga === 'object' && typeof raw.carga.img === 'string'
-      ? raw.carga.img.trim() || null
+    carga && typeof carga.img === 'string'
+      ? carga.img.trim() || null
       : null
 
-  const loading =
-    raw.carga && typeof raw.carga === 'object'
-      ? {
-          chargeTime: normalizeChargeTime(raw.carga.chargeTime),
-          textColor: normalizeColor(raw.carga.textColor),
-          backgroundColor: normalizeColor(raw.carga.backgroundColor),
-        }
-      : null
+  const loading = carga
+    ? {
+        chargeTime: normalizeChargeTime(carga.chargeTime),
+        textColor: normalizeColor(carga.textColor),
+        backgroundColor: normalizeColor(carga.backgroundColor),
+      }
+    : null
 
   return { siteTitle, sections, footer, loadingImg, loading }
 }
