@@ -155,8 +155,18 @@ export async function fetchJson(url, label) {
     throw new Error(`R2 devolvió ${response.status} al leer ${label}: ${url}`)
   }
 
+  const rawBody = await response.text()
+  const bodyWithoutBom = rawBody.replace(/^\uFEFF/, '')
+  let sanitizedBody = bodyWithoutBom
+
+  if (sanitizedBody.startsWith(")]}',")) {
+    sanitizedBody = sanitizedBody.slice(5).trimStart()
+  } else if (sanitizedBody.startsWith(")]}'")) {
+    sanitizedBody = sanitizedBody.slice(4).trimStart()
+  }
+
   try {
-    return await response.json()
+    return JSON.parse(sanitizedBody)
   } catch {
     throw new Error(`No se pudo parsear JSON en ${label}: ${url}`)
   }
