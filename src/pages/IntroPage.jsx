@@ -12,35 +12,57 @@
  *   - Clic o toque en cualquier parte → se cierra la intro.
  *   - Tecla Enter o Escape → se cierra la intro.
  */
-import { useEffect } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
+
+const INTRO_DISMISS_TIMEOUT_MS = 5000
 
 function IntroPage({ title, loadingImg, onDismiss }) {
-  useEffect(() => {
-    const dismissTimeoutId = window.setTimeout(() => {
-      onDismiss()
-    }, 5000)
+  const containerRef = useRef(null)
+  const onDismissRef = useRef(onDismiss)
+  const dismissedRef = useRef(false)
+  const dismissTimeoutIdRef = useRef(null)
 
-    function handleKey(event) {
-      if (event.key === 'Enter') {
-        onDismiss()
+  useEffect(() => {
+    onDismissRef.current = onDismiss
+  }, [onDismiss])
+
+  const dismissIntro = useCallback(() => {
+    if (dismissedRef.current) return
+    dismissedRef.current = true
+    if (dismissTimeoutIdRef.current !== null) {
+      window.clearTimeout(dismissTimeoutIdRef.current)
+      dismissTimeoutIdRef.current = null
+    }
+    onDismissRef.current()
+  }, [])
+
+  useEffect(() => {
+    containerRef.current?.focus()
+
+    dismissTimeoutIdRef.current = window.setTimeout(() => {
+      dismissIntro()
+    }, INTRO_DISMISS_TIMEOUT_MS)
+    return () => {
+      if (dismissTimeoutIdRef.current !== null) {
+        window.clearTimeout(dismissTimeoutIdRef.current)
+        dismissTimeoutIdRef.current = null
       }
     }
-    window.addEventListener('keydown', handleKey)
-    return () => {
-      window.clearTimeout(dismissTimeoutId)
-      window.removeEventListener('keydown', handleKey)
-    }
-  }, [onDismiss])
+  }, [dismissIntro])
 
   return (
     <div
+      ref={containerRef}
       className="fixed inset-0 z-50 flex flex-col bg-white text-black cursor-pointer overflow-hidden"
-      onClick={onDismiss}
+      onClick={dismissIntro}
       aria-label="Pantalla de introducción. Pulsa para continuar."
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') onDismiss()
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === 'Escape' || event.key === ' ') {
+          event.preventDefault()
+          dismissIntro()
+        }
       }}
     >
       <div className="flex h-1/2 w-full items-center justify-center px-6">
