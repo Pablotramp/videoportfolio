@@ -33,12 +33,13 @@ function App() {
   // Update favicon from _estructura.json when faviconUrl is available
   useEffect(() => {
     if (!portfolio.faviconUrl) return
-    let link = document.querySelector("link[rel~='icon']")
-    if (!link) {
-      link = document.createElement('link')
-      link.rel = 'icon'
-      document.head.appendChild(link)
-    }
+    const existing = document.querySelector("link[rel~='icon']")
+    const link = existing ?? (() => {
+      const newLink = document.createElement('link')
+      newLink.rel = 'icon'
+      document.head.appendChild(newLink)
+      return newLink
+    })()
     link.href = portfolio.faviconUrl
   }, [portfolio.faviconUrl])
 
