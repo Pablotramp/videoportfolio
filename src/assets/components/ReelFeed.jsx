@@ -6,6 +6,7 @@ const DEFAULT_FOOTER_HEIGHT_PX = 41
 const SLIDE_HEIGHT = `calc(100dvh - ${HEADER_HEIGHT_PX}px - var(--footer-h, ${DEFAULT_FOOTER_HEIGHT_PX}px))`
 const SLIDE_HEIGHT_STYLE = { height: SLIDE_HEIGHT }
 const AUTO_ADVANCE_MS = 5000
+const SWIPE_HINT_DURATION_MS = 2400
 const WHEEL_DEBOUNCE_MS = 550
 const WHEEL_DELTA_THRESHOLD = 8
 const PRIMARY_MOUSE_BUTTON = 0
@@ -96,7 +97,9 @@ function ReelSlide({ item, isActive, isMuted, onPlay, onPause, onEnded, slideRef
  * @param {{ items: Array<{ id: string, hlsManifestUrl: string }> }} props
  */
 export default function ReelFeed({ items }) {
+  const itemCount = Array.isArray(items) ? items.length : 0
   const [activeIndex, setActiveIndex] = useState(0)
+  const [showSwipeHint, setShowSwipeHint] = useState(itemCount > 1)
   // activeIndexRef mirrors activeIndex so scroll/timer callbacks can read the
   // current index without becoming stale closures that require re-registration.
   const activeIndexRef = useRef(0)
@@ -115,8 +118,22 @@ export default function ReelFeed({ items }) {
     pointerId: null,
   })
 
-  const itemCount = Array.isArray(items) ? items.length : 0
   const soundToggleLabel = isMuted ? 'Activar sonido' : 'Silenciar'
+  const isPlaybackReady = !showSwipeHint
+
+  useEffect(() => {
+    if (itemCount <= 1) {
+      setShowSwipeHint(false)
+      return undefined
+    }
+
+    setShowSwipeHint(true)
+    const timer = setTimeout(() => {
+      setShowSwipeHint(false)
+    }, SWIPE_HINT_DURATION_MS)
+
+    return () => clearTimeout(timer)
+  }, [itemCount])
 
   const updateIndex = useCallback((index) => {
     activeIndexRef.current = index
@@ -229,13 +246,13 @@ export default function ReelFeed({ items }) {
   // Auto-advance timer — suspended while a video is actively playing.
   // Wraps around to slide 0 so the carousel loops continuously (same as Home.jsx).
   useEffect(() => {
-    if (isVideoPlaying || itemCount <= 1) return undefined
+    if (!isPlaybackReady || isVideoPlaying || itemCount <= 1) return undefined
     const timer = setInterval(() => {
       const next = (activeIndexRef.current + 1) % itemCount
       scrollToIndex(next)
     }, AUTO_ADVANCE_MS)
     return () => clearInterval(timer)
-  }, [isVideoPlaying, itemCount, scrollToIndex])
+  }, [isPlaybackReady, isVideoPlaying, itemCount, scrollToIndex])
 
   const handlePlay = useCallback(() => {
     setIsVideoPlaying(true)
@@ -326,7 +343,7 @@ export default function ReelFeed({ items }) {
               slideRefs.current[index] = node
             }}
             item={item}
-            isActive={index === activeIndex}
+            isActive={index === activeIndex && isPlaybackReady}
             isMuted={isMuted}
             onPlay={handlePlay}
             onPause={handlePause}
@@ -334,6 +351,39 @@ export default function ReelFeed({ items }) {
           />
         ))}
       </div>
+
+      {showSwipeHint && (
+        <div
+          aria-hidden="true"
+          className="reel-swipe-hint pointer-events-none absolute inset-0 z-40 flex items-center justify-center"
+        >
+          <div className="reel-swipe-hint__icon rounded-full border border-white/20 bg-black/35 p-6 text-white shadow-[0_0_50px_rgba(0,0,0,0.35)] backdrop-blur-sm">
+            <svg width="96" height="96" viewBox="0 0 96 96" fill="none">
+              <path
+                d="M30 48h36"
+                stroke="currentColor"
+                strokeWidth="6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M41 34 27 48l14 14"
+                stroke="currentColor"
+                strokeWidth="6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="m55 34 14 14-14 14"
+                stroke="currentColor"
+                strokeWidth="6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+        </div>
+      )}
 
       {/* Global mute / unmute button — fixed to the bottom-right of the viewport */}
       <button

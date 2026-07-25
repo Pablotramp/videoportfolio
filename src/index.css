@@ -156,6 +156,55 @@
   min-height: calc(100dvh - 64px - var(--footer-h, 41px));
 }
 
+.reel-swipe-hint {
+  animation: reel-swipe-hint-fade 2.4s ease-out forwards;
+}
+
+.reel-swipe-hint__icon {
+  animation: reel-swipe-hint-blink 2.4s ease-out forwards;
+}
+
+@keyframes reel-swipe-hint-fade {
+  0%,
+  72% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes reel-swipe-hint-blink {
+  0% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+
+  12%,
+  28%,
+  44% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  20%,
+  36%,
+  52% {
+    opacity: 0.2;
+  }
+
+  72% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+}
+
 .audio-gallery > li {
   display: grid;
   justify-items: center;
