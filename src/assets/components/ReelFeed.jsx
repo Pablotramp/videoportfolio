@@ -83,9 +83,11 @@ function ReelSlide({ item, isActive, isMuted, onPlay, onPause, onEnded, slideRef
     let cancelled = false
 
     async function loadMeta() {
+      if (cancelled) return
       try {
         const response = await fetch(item.hlsMetadataUrl)
         if (!response.ok) return
+        if (cancelled) return
         const json = await response.json()
         const folderPrefix = item.hlsManifestUrl ? getFolderPrefix(item.hlsManifestUrl) : ''
         const rawImg = typeof json.socialMediaImg === 'string' ? json.socialMediaImg.trim() : ''
@@ -95,7 +97,7 @@ function ReelSlide({ item, isActive, isMuted, onPlay, onPause, onEnded, slideRef
           setReelMeta({
             epilogue: typeof json.epilogue === 'string' ? json.epilogue.trim() : '',
             socialMedia: sanitizeSocialUrl(rawLink),
-            socialMediaImgUrl: safeImg ? `${folderPrefix}${safeImg}` : '',
+            socialMediaImgUrl: safeImg && folderPrefix ? `${folderPrefix}${safeImg}` : '',
           })
         }
       } catch {
