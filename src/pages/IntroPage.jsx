@@ -15,8 +15,18 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 
 const DEFAULT_INTRO_DISMISS_TIMEOUT_MS = 5000
+const DEFAULT_FADE_OUT_DURATION_MS = 500
 
-function IntroPage({ title, loadingImg, chargeTime, textColor, backgroundColor, isExiting = false, onDismiss }) {
+function IntroPage({
+  title,
+  loadingImg,
+  chargeTime,
+  textColor,
+  backgroundColor,
+  fadeOutDurationMs = DEFAULT_FADE_OUT_DURATION_MS,
+  isExiting = false,
+  onDismiss,
+}) {
   const containerRef = useRef(null)
   const onDismissRef = useRef(onDismiss)
   const dismissedRef = useRef(false)
@@ -61,7 +71,7 @@ function IntroPage({ title, loadingImg, chargeTime, textColor, backgroundColor, 
   return (
     <div
       ref={containerRef}
-      className={`fixed inset-0 z-50 flex flex-col cursor-pointer overflow-hidden transition-opacity duration-500 ${
+      className={`fixed inset-0 z-50 flex flex-col cursor-pointer overflow-hidden transition-opacity ${
         isExiting ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
       onClick={dismissIntro}
@@ -71,6 +81,7 @@ function IntroPage({ title, loadingImg, chargeTime, textColor, backgroundColor, 
       style={{
         backgroundColor,
         color: textColor,
+        transitionDuration: `${fadeOutDurationMs}ms`,
       }}
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === 'Escape' || event.key === ' ') {

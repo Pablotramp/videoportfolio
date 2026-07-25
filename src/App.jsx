@@ -81,6 +81,7 @@ function App() {
           chargeTime={portfolio.loadingChargeTime}
           textColor={portfolio.loadingTextColor}
           backgroundColor={portfolio.loadingBackgroundColor}
+          fadeOutDurationMs={INTRO_FADE_OUT_DURATION_MS}
           isExiting={introExiting}
           onDismiss={dismissIntro}
         />

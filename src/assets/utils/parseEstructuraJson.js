@@ -42,6 +42,13 @@
  */
 
 export const RESERVED_METADATA_FIELDS = new Set(['title', 'img'])
+const EMPTY_PARSED_ESTRUCTURA = Object.freeze({
+  siteTitle: null,
+  sections: [],
+  footer: null,
+  loadingImg: null,
+  loading: null,
+})
 
 /**
  * Normalize a backgroundColor value by ensuring it starts with '#'.
@@ -116,7 +123,7 @@ function resolveSectionType(entry) {
  */
 export function parseEstructuraJson(raw) {
   if (!raw || typeof raw !== 'object') {
-    return { siteTitle: null, sections: [], footer: null, loadingImg: null, loading: null }
+    return { ...EMPTY_PARSED_ESTRUCTURA }
   }
 
   const siteTitle =
