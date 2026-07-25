@@ -16,18 +16,25 @@ import { useEffect } from 'react'
 
 function IntroPage({ title, loadingImg, onDismiss }) {
   useEffect(() => {
+    const dismissTimeoutId = window.setTimeout(() => {
+      onDismiss()
+    }, 5000)
+
     function handleKey(event) {
-      if (event.key === 'Enter' || event.key === 'Escape') {
+      if (event.key === 'Enter') {
         onDismiss()
       }
     }
     window.addEventListener('keydown', handleKey)
-    return () => window.removeEventListener('keydown', handleKey)
+    return () => {
+      window.clearTimeout(dismissTimeoutId)
+      window.removeEventListener('keydown', handleKey)
+    }
   }, [onDismiss])
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-black cursor-pointer overflow-hidden"
+      className="fixed inset-0 z-50 flex flex-col bg-white text-black cursor-pointer overflow-hidden"
       onClick={onDismiss}
       aria-label="Pantalla de introducción. Pulsa para continuar."
       role="button"
@@ -36,20 +43,24 @@ function IntroPage({ title, loadingImg, onDismiss }) {
         if (e.key === 'Enter') onDismiss()
       }}
     >
-      {loadingImg && (
-        <img
-          src={loadingImg}
-          alt=""
-          className="max-w-full max-h-[75vh]"
-          style={{ width: 'auto', height: 'auto' }}
-        />
-      )}
-      <h1
-        id="intro-title"
-        className="m-0 px-6 text-center font-serif text-5xl font-semibold tracking-tight text-stone-100 md:text-7xl"
-      >
-        {title}
-      </h1>
+      <div className="flex h-1/2 w-full items-center justify-center px-6">
+        <h1
+          id="intro-title"
+          className="m-0 text-center font-serif text-5xl font-semibold tracking-tight text-black md:text-7xl"
+        >
+          {title}
+        </h1>
+      </div>
+      <div className="flex h-1/2 w-full items-center justify-center px-6 pb-6">
+        {loadingImg && (
+          <img
+            src={loadingImg}
+            alt=""
+            className="max-w-full max-h-full"
+            style={{ width: 'auto', height: 'auto' }}
+          />
+        )}
+      </div>
     </div>
   )
 }
