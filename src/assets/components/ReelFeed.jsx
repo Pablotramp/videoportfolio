@@ -453,6 +453,8 @@ export default function ReelFeed({ items }) {
       pointerId: event.pointerId,
     }
     slider.setPointerCapture(event.pointerId)
+    // Bypass CSS scroll-behavior:smooth so the element follows the pointer instantly.
+    slider.style.scrollBehavior = 'auto'
   }, [])
 
   const handlePointerMove = useCallback((event) => {
@@ -460,8 +462,6 @@ export default function ReelFeed({ items }) {
     const dragState = dragStateRef.current
     if (!slider || !dragState.isDragging || dragState.pointerId !== event.pointerId) return
     const deltaX = event.clientX - dragState.startX
-    // Bypass CSS scroll-behavior:smooth so the element follows the pointer instantly.
-    slider.style.scrollBehavior = 'auto'
     slider.scrollLeft = dragState.startScrollLeft - deltaX
   }, [])
 
