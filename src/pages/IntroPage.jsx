@@ -12,44 +12,77 @@
  *   - Clic o toque en cualquier parte → se cierra la intro.
  *   - Tecla Enter o Escape → se cierra la intro.
  */
-import { useEffect } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
+
+const INTRO_DISMISS_TIMEOUT_MS = 5000
 
 function IntroPage({ title, loadingImg, onDismiss }) {
+  const containerRef = useRef(null)
+  const onDismissRef = useRef(onDismiss)
+  const dismissedRef = useRef(false)
+  const dismissTimeoutIdRef = useRef(null)
+
   useEffect(() => {
-    function handleKey(event) {
-      if (event.key === 'Enter' || event.key === 'Escape') {
-        onDismiss()
+    onDismissRef.current = onDismiss
+  }, [onDismiss])
+
+  const dismissIntro = useCallback(() => {
+    if (dismissedRef.current) return
+    dismissedRef.current = true
+    if (dismissTimeoutIdRef.current !== null) {
+      window.clearTimeout(dismissTimeoutIdRef.current)
+      dismissTimeoutIdRef.current = null
+    }
+    onDismissRef.current()
+  }, [])
+
+  useEffect(() => {
+    containerRef.current?.focus()
+
+    dismissTimeoutIdRef.current = window.setTimeout(() => {
+      dismissIntro()
+    }, INTRO_DISMISS_TIMEOUT_MS)
+    return () => {
+      if (dismissTimeoutIdRef.current !== null) {
+        window.clearTimeout(dismissTimeoutIdRef.current)
+        dismissTimeoutIdRef.current = null
       }
     }
-    window.addEventListener('keydown', handleKey)
-    return () => window.removeEventListener('keydown', handleKey)
-  }, [onDismiss])
+  }, [dismissIntro])
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-black cursor-pointer overflow-hidden"
-      onClick={onDismiss}
+      ref={containerRef}
+      className="fixed inset-0 z-50 flex flex-col bg-white text-black cursor-pointer overflow-hidden"
+      onClick={dismissIntro}
       aria-label="Pantalla de introducción. Pulsa para continuar."
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') onDismiss()
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === 'Escape' || event.key === ' ') {
+          event.preventDefault()
+          dismissIntro()
+        }
       }}
     >
-      {loadingImg && (
-        <img
-          src={loadingImg}
-          alt=""
-          className="max-w-full max-h-[75vh]"
-          style={{ width: 'auto', height: 'auto' }}
-        />
-      )}
-      <h1
-        id="intro-title"
-        className="m-0 px-6 text-center font-serif text-5xl font-semibold tracking-tight text-stone-100 md:text-7xl"
-      >
-        {title}
-      </h1>
+      <div className="flex h-1/2 w-full items-center justify-center px-6">
+        <h1
+          id="intro-title"
+          className="m-0 text-center font-serif text-5xl font-semibold tracking-tight text-black md:text-7xl"
+        >
+          {title}
+        </h1>
+      </div>
+      <div className="flex h-1/2 w-full items-center justify-center px-6 pb-6">
+        {loadingImg && (
+          <img
+            src={loadingImg}
+            alt=""
+            className="max-w-full max-h-full"
+            style={{ width: 'auto', height: 'auto' }}
+          />
+        )}
+      </div>
     </div>
   )
 }
