@@ -51,15 +51,26 @@ const EMPTY_PARSED_ESTRUCTURA = Object.freeze({
 })
 
 /**
- * Normalize a backgroundColor value by ensuring it starts with '#'.
+ * Normalize a string by trimming and returning null if empty/non-string.
+ *
+ * @param {unknown} value
+ * @returns {string | null}
+ */
+function normalizeString(value) {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  return trimmed ? trimmed : null
+}
+
+/**
+ * Normalize a hexadecimal color value by ensuring it starts with '#'.
  * Returns null if the value is blank or non-string.
  *
  * @param {unknown} value
  * @returns {string | null}
  */
-function normalizeColor(value) {
-  if (!value || typeof value !== 'string') return null
-  const trimmed = value.trim()
+function normalizeHexColor(value) {
+  const trimmed = normalizeString(value)
   if (!trimmed) return null
   return trimmed.startsWith('#') ? trimmed : `#${trimmed}`
 }
@@ -153,7 +164,7 @@ export function parseEstructuraJson(raw) {
               origin,
               type,
               img: typeof entry.img === 'string' ? entry.img.trim() : '',
-              backgroundColor: normalizeColor(entry.backgroundColor),
+              backgroundColor: normalizeHexColor(entry.backgroundColor),
             },
           ]
         } catch {
@@ -168,15 +179,15 @@ export function parseEstructuraJson(raw) {
   const carga = raw.carga && typeof raw.carga === 'object' ? raw.carga : null
 
   const loadingImg =
-    carga && typeof carga.img === 'string'
-      ? carga.img.trim() || null
+    carga
+      ? normalizeString(carga.img)
       : null
 
   const loading = carga
     ? {
         chargeTime: normalizeChargeTime(carga.chargeTime),
-        textColor: normalizeColor(carga.textColor),
-        backgroundColor: normalizeColor(carga.backgroundColor),
+        textColor: normalizeHexColor(carga.textColor),
+        backgroundColor: normalizeHexColor(carga.backgroundColor),
       }
     : null
 

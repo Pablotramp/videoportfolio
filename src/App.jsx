@@ -54,10 +54,7 @@ function App() {
   }
 
   const dismissIntro = useCallback(() => {
-    setIntroExiting((currentValue) => {
-      if (currentValue) return currentValue
-      return true
-    })
+    setIntroExiting(true)
   }, [])
 
   useEffect(() => {
