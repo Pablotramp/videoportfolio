@@ -205,21 +205,21 @@ function ReelSlide({ item, isActive, isMuted, onPlay, onPause, onEnded, slideRef
 
         {/* Profile avatar + social link — top-left corner inside the video */}
         {hasProfileImg && (
-          <div className="absolute top-3 left-3 z-10 flex items-center gap-2">
+          <div className="absolute top-3 left-3 z-10 flex items-start gap-2">
             {socialLink ? (
               <a
                 href={socialLink}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Perfil en redes sociales"
-                className="flex items-center gap-2"
+                className="flex items-start gap-2"
               >
                 <img
                   src={reelMeta.socialMediaImgUrl}
                   alt="Perfil"
-                  className="h-24 w-24 rounded-full border-2 border-white object-cover shadow-md"
+                  className="h-24 w-24 shrink-0 rounded-full border-2 border-white object-cover shadow-md"
                 />
-                <span className="max-w-[10rem] truncate rounded bg-black/40 px-2 py-0.5 text-xs font-medium text-white backdrop-blur-sm">
+                <span className="mt-1 max-w-[10rem] break-all rounded bg-black/40 px-2 py-0.5 text-xs font-medium text-white backdrop-blur-sm">
                   {socialLink.replace(/^https?:\/\//, '')}
                 </span>
               </a>
@@ -371,8 +371,6 @@ export default function ReelFeed({ items }) {
     if (!slider || itemCount <= 1) return undefined
 
     const onWheel = (event) => {
-      const isFocused = document.activeElement === slider
-      if (!isFocused && !slider.matches(':hover')) return
       if (
         Math.abs(event.deltaY) < WHEEL_DELTA_THRESHOLD &&
         Math.abs(event.deltaX) < WHEEL_DELTA_THRESHOLD
@@ -462,6 +460,8 @@ export default function ReelFeed({ items }) {
     const dragState = dragStateRef.current
     if (!slider || !dragState.isDragging || dragState.pointerId !== event.pointerId) return
     const deltaX = event.clientX - dragState.startX
+    // Bypass CSS scroll-behavior:smooth so the element follows the pointer instantly.
+    slider.style.scrollBehavior = 'auto'
     slider.scrollLeft = dragState.startScrollLeft - deltaX
   }, [])
 
@@ -477,6 +477,10 @@ export default function ReelFeed({ items }) {
     }
     if (slider?.hasPointerCapture(event.pointerId)) {
       slider.releasePointerCapture(event.pointerId)
+    }
+    // Restore smooth-scroll after drag so subsequent programmatic scrolls animate.
+    if (slider) {
+      slider.style.scrollBehavior = ''
     }
   }, [])
 

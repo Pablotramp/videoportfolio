@@ -10,6 +10,11 @@ const DEFAULT_MEDIA_BACKGROUND = '#0a0a0a'
 const SLIDE_HEIGHT = `calc(100dvh - ${HEADER_HEIGHT}px - var(--footer-h, ${FOOTER_HEIGHT}px))`
 const SLIDE_HEIGHT_STYLE = { height: SLIDE_HEIGHT }
 const SLIDE_LAYOUT_STYLE = { height: SLIDE_HEIGHT }
+const PRIMARY_MOUSE_BUTTON = 0
+const SUPPORTS_FINE_POINTER =
+  typeof window !== 'undefined' &&
+  typeof window.matchMedia === 'function' &&
+  window.matchMedia('(hover: hover) and (pointer: fine)').matches
 const BREADCRUMBS_STYLE = {
   bottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)',
   left: '50%',
@@ -34,7 +39,14 @@ function Home({ sections }) {
   const interactionTimerRef = useRef(null)
   const wheelLockedRef = useRef(false)
   const wheelTimerRef = useRef(null)
+  const dragStateRef = useRef({
+    isDragging: false,
+    startX: 0,
+    startScrollLeft: 0,
+    pointerId: null,
+  })
   const [failedImages, setFailedImages] = useState(() => new Set())
+  const [supportsFinePointer] = useState(SUPPORTS_FINE_POINTER)
 
   const sectionCount = sections.length
 
@@ -61,6 +73,58 @@ function Home({ sections }) {
     setIsInteracting(true)
     clearTimeout(interactionTimerRef.current)
     interactionTimerRef.current = setTimeout(() => setIsInteracting(false), INTERACTION_PAUSE_MS)
+  }, [])
+
+  const handlePointerDown = useCallback((event) => {
+    if (!event.isPrimary) return
+    if (event.pointerType === 'mouse' && event.button !== PRIMARY_MOUSE_BUTTON) return
+    if (
+      event.target instanceof Element &&
+      event.target.closest(
+        'button,a,input,select,textarea,[role="button"],[role="link"],[role="checkbox"],[role="radio"],[role="switch"],[role="tab"]',
+      )
+    ) {
+      return
+    }
+    const slider = sliderRef.current
+    if (!slider) return
+    dragStateRef.current = {
+      isDragging: true,
+      startX: event.clientX,
+      startScrollLeft: slider.scrollLeft,
+      pointerId: event.pointerId,
+    }
+    slider.setPointerCapture(event.pointerId)
+    // Bypass CSS scroll-behavior:smooth so the element follows the pointer instantly.
+    slider.style.scrollBehavior = 'auto'
+    markInteraction()
+  }, [markInteraction])
+
+  const handlePointerMove = useCallback((event) => {
+    const slider = sliderRef.current
+    const dragState = dragStateRef.current
+    if (!slider || !dragState.isDragging || dragState.pointerId !== event.pointerId) return
+    const deltaX = event.clientX - dragState.startX
+    slider.scrollLeft = dragState.startScrollLeft - deltaX
+  }, [])
+
+  const handlePointerEnd = useCallback((event) => {
+    const slider = sliderRef.current
+    const dragState = dragStateRef.current
+    if (!dragState.isDragging || dragState.pointerId !== event.pointerId) return
+    dragStateRef.current = {
+      isDragging: false,
+      startX: 0,
+      startScrollLeft: 0,
+      pointerId: null,
+    }
+    if (slider?.hasPointerCapture(event.pointerId)) {
+      slider.releasePointerCapture(event.pointerId)
+    }
+    // Restore smooth-scroll after drag so subsequent programmatic scrolls animate.
+    if (slider) {
+      slider.style.scrollBehavior = ''
+    }
   }, [])
 
   function setSlideRef(index) {
@@ -185,7 +249,9 @@ function Home({ sections }) {
     <section className="relative w-full" id="secciones">
       <div
         ref={sliderRef}
-        className="flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden scroll-smooth touch-pan-x"
+        className={`flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden scroll-smooth touch-pan-x select-none ${
+          supportsFinePointer ? 'cursor-grab active:cursor-grabbing' : ''
+        }`}
         aria-label="Carrusel horizontal de secciones"
         onKeyDown={handleKeyDown}
         onMouseEnter={() => setIsInteracting(true)}
@@ -193,6 +259,10 @@ function Home({ sections }) {
           clearTimeout(interactionTimerRef.current)
           setIsInteracting(false)
         }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerEnd}
+        onPointerCancel={handlePointerEnd}
         tabIndex={0}
         style={SLIDE_HEIGHT_STYLE}
       >
