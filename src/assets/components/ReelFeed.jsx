@@ -44,6 +44,27 @@ function sanitizeImageFilename(name) {
   return name
 }
 
+/**
+ * Builds a safe image URL anchored to the provided folder prefix.
+ * Returns empty string if URL parsing fails or if origin/path constraints fail.
+ *
+ * @param {string} folderPrefix
+ * @param {string} safeFilename
+ * @returns {string}
+ */
+function buildSafeImageUrl(folderPrefix, safeFilename) {
+  if (!folderPrefix || !safeFilename) return ''
+  try {
+    const baseUrl = new URL(folderPrefix)
+    const candidate = new URL(safeFilename, baseUrl)
+    if (candidate.origin !== baseUrl.origin) return ''
+    if (!candidate.pathname.startsWith(baseUrl.pathname)) return ''
+    return candidate.toString()
+  } catch {
+    return ''
+  }
+}
+
 const PREFERS_REDUCED_MOTION =
   typeof window !== 'undefined' &&
   typeof window.matchMedia === 'function' &&
@@ -97,7 +118,7 @@ function ReelSlide({ item, isActive, isMuted, onPlay, onPause, onEnded, slideRef
           setReelMeta({
             epilogue: typeof json.epilogue === 'string' ? json.epilogue.trim() : '',
             socialMedia: sanitizeSocialUrl(rawLink),
-            socialMediaImgUrl: safeImg && folderPrefix ? `${folderPrefix}${safeImg}` : '',
+            socialMediaImgUrl: buildSafeImageUrl(folderPrefix, safeImg),
           })
         }
       } catch {
