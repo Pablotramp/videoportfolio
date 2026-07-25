@@ -156,7 +156,8 @@ export async function fetchJson(url, label) {
   }
 
   const rawBody = await response.text()
-  const sanitizedBody = rawBody.replace(/^(\uFEFF|\)\]\}',?\s*)/, '')
+  const bodyWithoutBom = rawBody.replace(/^\uFEFF/, '')
+  const sanitizedBody = bodyWithoutBom.replace(/^\)\]\}',?\s*/, '')
 
   try {
     return JSON.parse(sanitizedBody)
