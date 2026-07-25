@@ -130,7 +130,6 @@ export default function ReelFeed({ items }) {
     return normalizedItems.map((item, index) => item.id ?? `slide-${index}`).join('|')
   }, [itemCount, normalizedItems])
   const showSwipeHint = swipeHintKey !== null && dismissedSwipeHintKey !== swipeHintKey
-  const isPlaybackReady = !showSwipeHint
 
   useEffect(() => {
     if (!showSwipeHint || swipeHintKey === null) return undefined
@@ -252,13 +251,13 @@ export default function ReelFeed({ items }) {
   // Auto-advance timer — suspended while a video is actively playing.
   // Wraps around to slide 0 so the carousel loops continuously (same as Home.jsx).
   useEffect(() => {
-    if (!isPlaybackReady || isVideoPlaying || itemCount <= 1) return undefined
+    if (isVideoPlaying || itemCount <= 1) return undefined
     const timer = setInterval(() => {
       const next = (activeIndexRef.current + 1) % itemCount
       scrollToIndex(next)
     }, AUTO_ADVANCE_MS)
     return () => clearInterval(timer)
-  }, [isPlaybackReady, isVideoPlaying, itemCount, scrollToIndex])
+  }, [isVideoPlaying, itemCount, scrollToIndex])
 
   const handlePlay = useCallback(() => {
     setIsVideoPlaying(true)
@@ -350,7 +349,7 @@ export default function ReelFeed({ items }) {
               slideRefs.current[index] = node
             }}
             item={item}
-            isActive={index === activeIndex && isPlaybackReady}
+            isActive={index === activeIndex}
             isMuted={isMuted}
             onPlay={handlePlay}
             onPause={handlePause}
