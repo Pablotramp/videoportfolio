@@ -21,6 +21,9 @@
  *       "author"?: string,
  *       "note"?: string,
  *       "links"?: [{ "href": string, "label"?: string }]
+ *     },
+ *     "carga": {                 // Splash/intro screen — all optional
+ *       "img"?: string           // Filename of the image shown on the intro screen (e.g. a GIF)
  *     }
  *   }
  *
@@ -80,7 +83,8 @@ function resolveSectionType(entry) {
  *     img: string,
  *     backgroundColor: string | null
  *   }>,
- *   footer: object | null
+ *   footer: object | null,
+ *   loadingImg: string | null
  * }}
  */
 export function parseEstructuraJson(raw) {
@@ -127,5 +131,10 @@ export function parseEstructuraJson(raw) {
   const footer =
     raw.footer && typeof raw.footer === 'object' ? raw.footer : null
 
-  return { siteTitle, sections, footer }
+  const loadingImg =
+    raw.carga && typeof raw.carga === 'object' && typeof raw.carga.img === 'string'
+      ? raw.carga.img.trim() || null
+      : null
+
+  return { siteTitle, sections, footer, loadingImg }
 }

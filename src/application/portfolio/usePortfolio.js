@@ -8,6 +8,7 @@ const DEFAULT_PORTFOLIO = {
   siteTitle: null,
   r2BaseUrl: null,
   sectionManifest: null,
+  loadingImg: null,
 }
 
 export function usePortfolio(source) {
