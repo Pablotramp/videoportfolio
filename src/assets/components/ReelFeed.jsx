@@ -87,7 +87,7 @@ function ReelSlide({ item, isActive, isMuted, onPlay, onPause, onEnded, slideRef
         const response = await fetch(item.hlsMetadataUrl)
         if (!response.ok) return
         const json = await response.json()
-        const folderPrefix = getFolderPrefix(item.hlsManifestUrl || item.hlsMetadataUrl)
+        const folderPrefix = item.hlsManifestUrl ? getFolderPrefix(item.hlsManifestUrl) : ''
         const rawImg = typeof json.socialMediaImg === 'string' ? json.socialMediaImg.trim() : ''
         const safeImg = sanitizeImageFilename(rawImg)
         const rawLink = typeof json.socialMedia === 'string' ? json.socialMedia.trim() : ''
