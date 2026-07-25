@@ -205,6 +205,13 @@
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .reel-swipe-hint,
+  .reel-swipe-hint__icon {
+    animation: none;
+  }
+}
+
 .audio-gallery > li {
   display: grid;
   justify-items: center;

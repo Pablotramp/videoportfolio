@@ -10,6 +10,10 @@ const SWIPE_HINT_DURATION_MS = 2400
 const WHEEL_DEBOUNCE_MS = 550
 const WHEEL_DELTA_THRESHOLD = 8
 const PRIMARY_MOUSE_BUTTON = 0
+const PREFERS_REDUCED_MOTION =
+  typeof window !== 'undefined' &&
+  typeof window.matchMedia === 'function' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches
 const SUPPORTS_FINE_POINTER =
   typeof window !== 'undefined' &&
   typeof window.matchMedia === 'function' &&
@@ -99,12 +103,15 @@ function ReelSlide({ item, isActive, isMuted, onPlay, onPause, onEnded, slideRef
 export default function ReelFeed({ items }) {
   const itemCount = Array.isArray(items) ? items.length : 0
   const [activeIndex, setActiveIndex] = useState(0)
-  const [showSwipeHint, setShowSwipeHint] = useState(() => itemCount > 1)
+  const [showSwipeHint, setShowSwipeHint] = useState(
+    () => Array.isArray(items) && items.length > 1 && !PREFERS_REDUCED_MOTION,
+  )
   // activeIndexRef mirrors activeIndex so scroll/timer callbacks can read the
   // current index without becoming stale closures that require re-registration.
   const activeIndexRef = useRef(0)
   const [isVideoPlaying, setIsVideoPlaying] = useState(false)
   const [isMuted, setIsMuted] = useState(true)
+  const [prefersReducedMotion] = useState(PREFERS_REDUCED_MOTION)
   const [supportsFinePointer] = useState(SUPPORTS_FINE_POINTER)
   const swipeHintDescriptionId = useId()
 
@@ -123,13 +130,14 @@ export default function ReelFeed({ items }) {
   const isPlaybackReady = !showSwipeHint
 
   useEffect(() => {
+    if (prefersReducedMotion) return undefined
     if (!showSwipeHint) return undefined
     const timer = setTimeout(() => {
       setShowSwipeHint(false)
     }, SWIPE_HINT_DURATION_MS)
 
     return () => clearTimeout(timer)
-  }, [showSwipeHint])
+  }, [prefersReducedMotion, showSwipeHint])
 
   const updateIndex = useCallback((index) => {
     activeIndexRef.current = index
