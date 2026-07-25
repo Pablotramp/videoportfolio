@@ -14,13 +14,17 @@
  */
 import { useCallback, useEffect, useRef } from 'react'
 
-const INTRO_DISMISS_TIMEOUT_MS = 5000
+const DEFAULT_INTRO_DISMISS_TIMEOUT_MS = 5000
 
-function IntroPage({ title, loadingImg, onDismiss }) {
+function IntroPage({ title, loadingImg, chargeTime, textColor, backgroundColor, isExiting = false, onDismiss }) {
   const containerRef = useRef(null)
   const onDismissRef = useRef(onDismiss)
   const dismissedRef = useRef(false)
   const dismissTimeoutIdRef = useRef(null)
+
+  const dismissTimeoutMs = Number.isFinite(chargeTime)
+    ? Math.max(0, chargeTime * 1000)
+    : DEFAULT_INTRO_DISMISS_TIMEOUT_MS
 
   useEffect(() => {
     onDismissRef.current = onDismiss
@@ -41,23 +45,29 @@ function IntroPage({ title, loadingImg, onDismiss }) {
 
     dismissTimeoutIdRef.current = window.setTimeout(() => {
       dismissIntro()
-    }, INTRO_DISMISS_TIMEOUT_MS)
+    }, dismissTimeoutMs)
     return () => {
       if (dismissTimeoutIdRef.current !== null) {
         window.clearTimeout(dismissTimeoutIdRef.current)
         dismissTimeoutIdRef.current = null
       }
     }
-  }, [dismissIntro])
+  }, [dismissIntro, dismissTimeoutMs])
 
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 z-50 flex flex-col bg-white text-black cursor-pointer overflow-hidden"
+      className={`fixed inset-0 z-50 flex flex-col cursor-pointer overflow-hidden transition-opacity duration-500 ${
+        isExiting ? 'opacity-0 pointer-events-none' : 'opacity-100'
+      }`}
       onClick={dismissIntro}
       aria-label="Pantalla de introducción. Pulsa para continuar."
       role="button"
       tabIndex={0}
+      style={{
+        backgroundColor: backgroundColor ?? undefined,
+        color: textColor ?? undefined,
+      }}
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === 'Escape' || event.key === ' ') {
           event.preventDefault()
@@ -68,7 +78,7 @@ function IntroPage({ title, loadingImg, onDismiss }) {
       <div className="flex h-1/2 w-full items-center justify-center px-6">
         <h1
           id="intro-title"
-          className="m-0 text-center font-serif text-5xl font-semibold tracking-tight text-black md:text-7xl"
+          className="m-0 text-center font-serif text-5xl font-semibold tracking-tight md:text-7xl"
         >
           {title}
         </h1>

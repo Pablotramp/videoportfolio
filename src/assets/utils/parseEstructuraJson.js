@@ -23,7 +23,10 @@
  *       "links"?: [{ "href": string, "label"?: string }]
  *     },
  *     "carga": {                 // Splash/intro screen — all optional
- *       "img"?: string           // Filename of the image shown on the intro screen (e.g. a GIF)
+ *       "img"?: string,          // Filename of the image shown on the intro screen (e.g. a GIF)
+ *       "chargeTime"?: number,   // Seconds visible before auto-dismiss
+ *       "textColor"?: string,    // Hex color for intro text
+ *       "backgroundColor"?: string // Hex color for intro background
  *     }
  *   }
  *
@@ -52,6 +55,25 @@ function normalizeColor(value) {
   const trimmed = value.trim()
   if (!trimmed) return null
   return trimmed.startsWith('#') ? trimmed : `#${trimmed}`
+}
+
+/**
+ * Normalize chargeTime to seconds.
+ * Returns null if the value is invalid.
+ *
+ * @param {unknown} value
+ * @returns {number | null}
+ */
+function normalizeChargeTime(value) {
+  const numericValue =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string'
+        ? Number.parseFloat(value)
+        : Number.NaN
+
+  if (!Number.isFinite(numericValue) || numericValue < 0) return null
+  return numericValue
 }
 
 /**
@@ -84,12 +106,17 @@ function resolveSectionType(entry) {
  *     backgroundColor: string | null
  *   }>,
  *   footer: object | null,
- *   loadingImg: string | null
+ *   loadingImg: string | null,
+ *   loading: {
+ *     chargeTime: number | null,
+ *     textColor: string | null,
+ *     backgroundColor: string | null
+ *   } | null
  * }}
  */
 export function parseEstructuraJson(raw) {
   if (!raw || typeof raw !== 'object') {
-    return { siteTitle: null, sections: [], footer: null }
+    return { siteTitle: null, sections: [], footer: null, loadingImg: null, loading: null }
   }
 
   const siteTitle =
@@ -136,5 +163,14 @@ export function parseEstructuraJson(raw) {
       ? raw.carga.img.trim() || null
       : null
 
-  return { siteTitle, sections, footer, loadingImg }
+  const loading =
+    raw.carga && typeof raw.carga === 'object'
+      ? {
+          chargeTime: normalizeChargeTime(raw.carga.chargeTime),
+          textColor: normalizeColor(raw.carga.textColor),
+          backgroundColor: normalizeColor(raw.carga.backgroundColor),
+        }
+      : null
+
+  return { siteTitle, sections, footer, loadingImg, loading }
 }
