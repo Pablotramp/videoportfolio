@@ -23,9 +23,10 @@ const SUPPORTS_FINE_POINTER =
  * ReelSlide — single reel video slide managing its own HLS instance.
  *
  * Plays when `isActive` is true; pauses and resets when false.
- * Fires `onPlay` / `onPause` / `onEnded` to let the parent track playback state.
+ * Fires `onPlay(index)` / `onPause(index)` / `onEnded(index)` so the parent
+ * can filter events by slide index and ignore stale events from deactivating slides.
  */
-function ReelSlide({ item, isActive, isMuted, onPlay, onPause, onEnded, slideRef }) {
+function ReelSlide({ item, isActive, isMuted, onPlay, onPause, onEnded, slideRef, index }) {
   const videoRef = useRef(null)
 
   // Attach HLS source once
@@ -68,6 +69,13 @@ function ReelSlide({ item, isActive, isMuted, onPlay, onPause, onEnded, slideRef
     }
   }, [isActive])
 
+  // Stable per-slide event handlers that forward the slide index to the parent.
+  // useCallback deps are stable: onPlay/onPause/onEnded are useCallback from the
+  // parent, and index is fixed for the lifetime of this component instance.
+  const handleVideoPlay = useCallback(() => onPlay(index), [onPlay, index])
+  const handleVideoPause = useCallback(() => onPause(index), [onPause, index])
+  const handleVideoEnded = useCallback(() => onEnded(index), [onEnded, index])
+
   return (
     <div
       ref={slideRef}
@@ -80,9 +88,9 @@ function ReelSlide({ item, isActive, isMuted, onPlay, onPause, onEnded, slideRef
           ref={videoRef}
           playsInline
           className="h-full w-full object-cover"
-          onPlay={onPlay}
-          onPause={onPause}
-          onEnded={onEnded}
+          onPlay={handleVideoPlay}
+          onPause={handleVideoPause}
+          onEnded={handleVideoEnded}
         />
       </div>
     </div>
@@ -259,17 +267,22 @@ export default function ReelFeed({ items }) {
     return () => clearInterval(timer)
   }, [isVideoPlaying, itemCount, scrollToIndex])
 
-  const handlePlay = useCallback(() => {
-    setIsVideoPlaying(true)
+  const handlePlay = useCallback((index) => {
+    if (index === activeIndexRef.current) {
+      setIsVideoPlaying(true)
+    }
   }, [])
 
-  const handlePause = useCallback(() => {
-    setIsVideoPlaying(false)
+  const handlePause = useCallback((index) => {
+    if (index === activeIndexRef.current) {
+      setIsVideoPlaying(false)
+    }
   }, [])
 
   // When the active video ends, advance to the next slide immediately.
   // Wraps around to slide 0 after the last video (carousel loops continuously).
-  const handleEnded = useCallback(() => {
+  const handleEnded = useCallback((index) => {
+    if (index !== activeIndexRef.current) return
     setIsVideoPlaying(false)
     const next = (activeIndexRef.current + 1) % itemCount
     scrollToIndex(next)
@@ -354,6 +367,7 @@ export default function ReelFeed({ items }) {
             onPlay={handlePlay}
             onPause={handlePause}
             onEnded={handleEnded}
+            index={index}
           />
         ))}
       </div>
