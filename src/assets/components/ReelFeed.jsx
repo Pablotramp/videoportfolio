@@ -101,7 +101,7 @@ function ReelSlide({ item, isActive, isMuted, onPlay, onPause, onEnded, slideRef
  * @param {{ items: Array<{ id: string, hlsManifestUrl: string }> }} props
  */
 export default function ReelFeed({ items }) {
-  const normalizedItems = Array.isArray(items) ? items : []
+  const normalizedItems = useMemo(() => (Array.isArray(items) ? items : []), [items])
   const itemCount = normalizedItems.length
   const [activeIndex, setActiveIndex] = useState(0)
   // activeIndexRef mirrors activeIndex so scroll/timer callbacks can read the
