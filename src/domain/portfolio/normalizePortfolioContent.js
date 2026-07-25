@@ -12,6 +12,7 @@ export function normalizePortfolioContent(rawContent = {}) {
     manifestSections = null,
     manifestFiles = null,
     loadingImgUrl = null,
+    faviconUrl = null,
   } = rawContent
 
   const parsedJson = parseEstructuraJson(estructuraJson)
@@ -70,5 +71,6 @@ export function normalizePortfolioContent(rawContent = {}) {
     loadingChargeTime: parsedJson.loading?.chargeTime ?? null,
     loadingTextColor: parsedJson.loading?.textColor ?? null,
     loadingBackgroundColor: parsedJson.loading?.backgroundColor ?? null,
+    faviconUrl,
   }
 }
