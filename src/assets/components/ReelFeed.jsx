@@ -10,6 +10,61 @@ const SWIPE_HINT_DURATION_MS = 2400
 const WHEEL_DEBOUNCE_MS = 550
 const WHEEL_DELTA_THRESHOLD = 8
 const PRIMARY_MOUSE_BUTTON = 0
+const PROFILE_AVATAR_TOP_OFFSET = '-2rem'
+const ALLOWED_SOCIAL_SCHEMES = new Set(['https:', 'http:'])
+
+/**
+ * Returns the URL only if its scheme is http or https, otherwise null.
+ * Prevents javascript: URIs and other potentially malicious schemes.
+ *
+ * @param {string} url
+ * @returns {string|null}
+ */
+function sanitizeSocialUrl(url) {
+  if (!url) return null
+  try {
+    return ALLOWED_SOCIAL_SCHEMES.has(new URL(url).protocol) ? url : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Returns the filename only when it looks like a safe bare filename
+ * (no path separators, no leading dots that indicate traversal).
+ *
+ * @param {string} name
+ * @returns {string}
+ */
+function sanitizeImageFilename(name) {
+  // Reject anything containing a slash/backslash (path traversal)
+  if (!name || name.includes('/') || name.includes('\\')) return ''
+  // Reject sequences like ".." that could escape the folder
+  if (name.includes('..')) return ''
+  return name
+}
+
+/**
+ * Builds a safe image URL anchored to the provided folder prefix.
+ * Returns empty string if URL parsing fails or if origin/path constraints fail.
+ *
+ * @param {string} folderPrefix
+ * @param {string} safeFilename
+ * @returns {string}
+ */
+function buildSafeImageUrl(folderPrefix, safeFilename) {
+  if (!folderPrefix || !safeFilename) return ''
+  try {
+    const baseUrl = new URL(folderPrefix)
+    const candidate = new URL(safeFilename, baseUrl)
+    if (candidate.origin !== baseUrl.origin) return ''
+    if (!candidate.pathname.startsWith(baseUrl.pathname)) return ''
+    return candidate.toString()
+  } catch {
+    return ''
+  }
+}
+
 const PREFERS_REDUCED_MOTION =
   typeof window !== 'undefined' &&
   typeof window.matchMedia === 'function' &&
@@ -20,6 +75,18 @@ const SUPPORTS_FINE_POINTER =
   window.matchMedia('(hover: hover) and (pointer: fine)').matches
 
 /**
+ * Derives the folder URL prefix from a file URL.
+ * e.g. "https://r2.example.com/reels/Video/master.m3u8" → "https://r2.example.com/reels/Video/"
+ *
+ * @param {string} fileUrl
+ * @returns {string}
+ */
+function getFolderPrefix(fileUrl) {
+  const lastSlash = fileUrl.lastIndexOf('/')
+  return lastSlash >= 0 ? fileUrl.slice(0, lastSlash + 1) : ''
+}
+
+/**
  * ReelSlide — single reel video slide managing its own HLS instance.
  *
  * Plays when `isActive` is true; pauses and resets when false.
@@ -28,6 +95,42 @@ const SUPPORTS_FINE_POINTER =
  */
 function ReelSlide({ item, isActive, isMuted, onPlay, onPause, onEnded, slideRef, index }) {
   const videoRef = useRef(null)
+  const [reelMeta, setReelMeta] = useState(null)
+
+  // Fetch reel metadata (epilogue, socialMedia, socialMediaImg)
+  useEffect(() => {
+    if (!item.hlsMetadataUrl) return undefined
+
+    let cancelled = false
+
+    async function loadMeta() {
+      if (cancelled) return
+      try {
+        const response = await fetch(item.hlsMetadataUrl)
+        if (!response.ok) return
+        if (cancelled) return
+        const json = await response.json()
+        const folderPrefix = item.hlsManifestUrl ? getFolderPrefix(item.hlsManifestUrl) : ''
+        const rawImg = typeof json.socialMediaImg === 'string' ? json.socialMediaImg.trim() : ''
+        const safeImg = sanitizeImageFilename(rawImg)
+        const rawLink = typeof json.socialMedia === 'string' ? json.socialMedia.trim() : ''
+        if (!cancelled) {
+          setReelMeta({
+            epilogue: typeof json.epilogue === 'string' ? json.epilogue.trim() : '',
+            socialMedia: sanitizeSocialUrl(rawLink),
+            socialMediaImgUrl: buildSafeImageUrl(folderPrefix, safeImg),
+          })
+        }
+      } catch {
+        // metadata is optional — silently ignore fetch errors
+      }
+    }
+
+    loadMeta()
+    return () => {
+      cancelled = true
+    }
+  }, [item.hlsMetadataUrl, item.hlsManifestUrl])
 
   // Attach HLS source once
   useEffect(() => {
@@ -76,22 +179,63 @@ function ReelSlide({ item, isActive, isMuted, onPlay, onPause, onEnded, slideRef
   const handleVideoPause = useCallback(() => onPause(index), [onPause, index])
   const handleVideoEnded = useCallback(() => onEnded(index), [onEnded, index])
 
+  const hasProfileImg = Boolean(reelMeta?.socialMediaImgUrl)
+  const hasEpilogue = Boolean(reelMeta?.epilogue)
+  const socialLink = reelMeta?.socialMedia || null
+
   return (
     <div
       ref={slideRef}
       className="relative flex min-w-full snap-start items-center justify-center bg-black"
       style={SLIDE_HEIGHT_STYLE}
     >
-      {/* 9:16 column centred inside the row */}
-      <div className="relative h-full overflow-hidden" style={{ aspectRatio: '9 / 16' }}>
-        <video
-          ref={videoRef}
-          playsInline
-          className="h-full w-full object-cover"
-          onPlay={handleVideoPlay}
-          onPause={handleVideoPause}
-          onEnded={handleVideoEnded}
-        />
+      {/* 9:16 column centred inside the row.
+          overflow-visible allows the profile avatar to extend above the top edge. */}
+      <div className="relative h-full" style={{ aspectRatio: '9 / 16' }}>
+        {/* Video — clipped to its own bounds */}
+        <div className="absolute inset-0 overflow-hidden">
+          <video
+            ref={videoRef}
+            playsInline
+            className="h-full w-full object-cover"
+            onPlay={handleVideoPlay}
+            onPause={handleVideoPause}
+            onEnded={handleVideoEnded}
+          />
+        </div>
+
+        {/* Profile avatar — top-left corner, half outside the top edge */}
+        {hasProfileImg && (
+          <div className="absolute left-3 z-10" style={{ top: PROFILE_AVATAR_TOP_OFFSET }}>
+            {socialLink ? (
+              <a
+                href={socialLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Perfil en redes sociales"
+              >
+                <img
+                  src={reelMeta.socialMediaImgUrl}
+                  alt="Perfil"
+                  className="h-16 w-16 rounded-full border-2 border-white object-cover shadow-md"
+                />
+              </a>
+            ) : (
+              <img
+                src={reelMeta.socialMediaImgUrl}
+                alt="Perfil"
+                className="h-16 w-16 rounded-full border-2 border-white object-cover shadow-md"
+              />
+            )}
+          </div>
+        )}
+
+        {/* Epilogue — bottom overlay with semi-transparent background */}
+        {hasEpilogue && (
+          <div className="absolute bottom-0 left-0 right-0 z-10 bg-black/50 px-4 py-3 text-sm leading-snug text-white backdrop-blur-sm">
+            {reelMeta.epilogue}
+          </div>
+        )}
       </div>
     </div>
   )
