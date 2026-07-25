@@ -14,7 +14,7 @@
  */
 import { useEffect } from 'react'
 
-function IntroPage({ title, onDismiss }) {
+function IntroPage({ title, loadingImg, onDismiss }) {
   useEffect(() => {
     function handleKey(event) {
       if (event.key === 'Enter' || event.key === 'Escape') {
@@ -27,7 +27,7 @@ function IntroPage({ title, onDismiss }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black cursor-pointer"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-black cursor-pointer overflow-hidden"
       onClick={onDismiss}
       aria-label="Pantalla de introducción. Pulsa para continuar."
       role="button"
@@ -36,6 +36,14 @@ function IntroPage({ title, onDismiss }) {
         if (e.key === 'Enter') onDismiss()
       }}
     >
+      {loadingImg && (
+        <img
+          src={loadingImg}
+          alt=""
+          className="max-w-full max-h-[75vh]"
+          style={{ width: 'auto', height: 'auto' }}
+        />
+      )}
       <h1
         id="intro-title"
         className="m-0 px-6 text-center font-serif text-5xl font-semibold tracking-tight text-stone-100 md:text-7xl"

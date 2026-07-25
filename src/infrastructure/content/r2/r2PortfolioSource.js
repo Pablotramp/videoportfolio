@@ -490,6 +490,12 @@ export function createR2PortfolioSource(config = {}) {
             : null,
         manifestFiles:
           manifest && Array.isArray(manifest.files) ? manifest.files : null,
+        loadingImgUrl: (() => {
+          const imgName = estructuraJson?.carga?.img
+          return typeof imgName === 'string' && imgName.trim()
+            ? `${contentBaseUrl}/${imgName.trim()}`
+            : null
+        })(),
       }
     },
   }

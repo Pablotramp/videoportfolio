@@ -54,7 +54,7 @@ function App() {
     <>
       {/* Intro screen: shown once on initial load while siteTitle is available */}
       {showIntro && !portfolio.loading && hasSiteTitle && (
-        <IntroPage title={portfolio.siteTitle} onDismiss={() => setShowIntro(false)} />
+        <IntroPage title={portfolio.siteTitle} loadingImg={portfolio.loadingImg} onDismiss={() => setShowIntro(false)} />
       )}
       <MainLayout
         footer={portfolio.footer}
