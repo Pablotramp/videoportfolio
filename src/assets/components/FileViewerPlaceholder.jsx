@@ -4,7 +4,18 @@ import { fetchJson, toObjectUrl } from '../../infrastructure/content/r2/r2Utils.
 const DEFAULT_LINK_TITLE_PREFIX = 'Enlace'
 const EMPTY_IMAGE_LABEL = 'Sin imagen'
 const SPOTIFY_BRAND_COLOR = '#1ed760'
-const SPOTIFY_BADGE_POSITION_PERCENTAGE = '66.67%'
+const SPOTIFY_DEEP_LINK_PROMPT = '¿Quieres abrir este enlace en la app de Spotify?'
+const SPOTIFY_DEEP_LINK_REGEX = /^spotify:[a-zA-Z]+:[a-zA-Z0-9]+$/
+const SPOTIFY_ID_REGEX = /^[a-zA-Z0-9]{22}$/
+const SPOTIFY_ALLOWED_RESOURCE_TYPES = new Set([
+  'album',
+  'artist',
+  'episode',
+  'playlist',
+  'show',
+  'track',
+])
+const CARD_IMAGE_MAX_HEIGHT_CLASS = 'max-h-72'
 
 function getTrimmedString(value) {
   return typeof value === 'string' ? value.trim() : ''
@@ -53,29 +64,65 @@ function normalizeLinkItems(rawLinks, r2BaseUrl, contentFolderKey) {
   })
 }
 
+function isSpotifyPlatform(platform) {
+  return getTrimmedString(platform).toLowerCase() === 'spotify'
+}
+
+function isSpotifyHost(hostname) {
+  const normalizedHost = getTrimmedString(hostname).toLowerCase()
+  return (
+    normalizedHost === 'spotify.com' ||
+    normalizedHost === 'open.spotify.com' ||
+    normalizedHost.endsWith('.spotify.com')
+  )
+}
+
+function getSpotifyDeepLink(href) {
+  const sanitizedHref = getTrimmedString(href)
+  if (!sanitizedHref) return null
+
+  if (sanitizedHref.toLowerCase().startsWith('spotify:')) {
+    return SPOTIFY_DEEP_LINK_REGEX.test(sanitizedHref) ? sanitizedHref : null
+  }
+
+  try {
+    const parsed = new URL(sanitizedHref)
+    if (!isSpotifyHost(parsed.hostname)) return null
+
+    const pathSegments = parsed.pathname.split('/').filter(Boolean)
+    if (pathSegments.length !== 2) return null
+
+    const [resourceType, spotifyResourceId] = pathSegments
+    if (!SPOTIFY_ALLOWED_RESOURCE_TYPES.has(resourceType.toLowerCase())) return null
+    if (!SPOTIFY_ID_REGEX.test(spotifyResourceId)) return null
+
+    return `spotify:${resourceType.toLowerCase()}:${spotifyResourceId}`
+  } catch {
+    return null
+  }
+}
+
 function SpotifyBadge() {
   return (
     <span
-      className="pointer-events-none absolute z-10 block h-9 w-9 text-current"
+      className="flex w-8 shrink-0 self-stretch items-center text-current"
       style={{
-        top: SPOTIFY_BADGE_POSITION_PERCENTAGE,
-        left: SPOTIFY_BADGE_POSITION_PERCENTAGE,
         color: SPOTIFY_BRAND_COLOR,
-        transform: 'translate(-50%, -50%)',
       }}
     >
       <svg viewBox="0 0 24 24" aria-hidden="true" className="h-full w-full" fill="none">
+        <circle cx="12" cy="12" r="12" fill="currentColor" />
         <path
-          d="M18.767 10.168a.75.75 0 0 1-1.031.248c-2.791-1.71-7.059-2.097-12.685-1.149a.75.75 0 0 1-.249-1.48c6.024-1.016 10.663-.569 13.717 1.301a.75.75 0 0 1 .248 1.03Z"
-          fill="currentColor"
+          d="M17.696 14.028a.744.744 0 0 1-1.025.246c-2.354-1.441-5.319-1.767-8.81-.969a.744.744 0 1 1-.332-1.451c3.884-.889 7.217-.504 9.917 1.149a.744.744 0 0 1 .25 1.025Z"
+          fill="#0a0a0a"
         />
         <path
-          d="M20.24 6.89a.938.938 0 0 1-1.288.308C15.757 5.236 10.889 4.66 6.44 5.66a.937.937 0 0 1-.412-1.829c4.942-1.111 10.218-.484 13.903 1.704a.938.938 0 0 1 .309 1.288Z"
-          fill="currentColor"
+          d="M19.163 10.745a.932.932 0 0 1-1.282.311c-2.694-1.646-6.799-2.123-9.986-1.162a.931.931 0 0 1-.537-1.783c3.642-1.102 8.168-.567 11.495 1.466a.932.932 0 0 1 .31 1.168Z"
+          fill="#0a0a0a"
         />
         <path
-          d="M17.312 13.818a.625.625 0 0 1-.86.208c-2.397-1.469-5.4-1.802-8.928-.99a.625.625 0 0 1-.28-1.219c3.85-.886 7.157-.51 9.862 1.149a.625.625 0 0 1 .206.852Z"
-          fill="currentColor"
+          d="M19.284 7.638c-3.089-1.835-8.194-2.004-11.142-1.108a1.117 1.117 0 1 1-.648-2.138c3.39-1.028 9.028-.831 12.93 1.484a1.116 1.116 0 1 1-1.14 1.762Z"
+          fill="#0a0a0a"
         />
       </svg>
     </span>
@@ -83,13 +130,24 @@ function SpotifyBadge() {
 }
 
 function PlatformBadge({ platform }) {
-  const normalizedPlatform = getTrimmedString(platform).toLowerCase()
-  if (!normalizedPlatform) return null
-  if (normalizedPlatform === 'spotify') return <SpotifyBadge />
+  if (isSpotifyPlatform(platform)) return <SpotifyBadge />
   return null
 }
 
 function LinkCard({ item }) {
+  function handleClick(event) {
+    if (!isSpotifyPlatform(item.platform)) return
+
+    const deepLink = getSpotifyDeepLink(item.href)
+    if (!deepLink || typeof window === 'undefined') return
+
+    const shouldOpenSpotifyApp = window.confirm(SPOTIFY_DEEP_LINK_PROMPT)
+    if (!shouldOpenSpotifyApp) return
+
+    event.preventDefault()
+    window.location.href = deepLink
+  }
+
   return (
     <a
       href={item.href}
@@ -97,31 +155,34 @@ function LinkCard({ item }) {
       rel="noreferrer"
       className="group flex h-full flex-col overflow-visible rounded-2xl border border-black/10 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-zinc-950 focus-visible:ring-2 focus-visible:ring-white"
       aria-label={item.title}
+      onClick={handleClick}
     >
       <div className="relative overflow-visible rounded-t-2xl">
         {item.platform && <span className="sr-only">Disponible en {item.platform}</span>}
-        <div className="aspect-[4/5] overflow-hidden rounded-t-2xl bg-zinc-200">
+        <div className="flex items-center justify-center overflow-hidden rounded-t-2xl bg-zinc-200 p-4">
           {item.imageUrl ? (
             <img
               src={item.imageUrl}
               alt=""
-              className="h-full w-full object-contain p-4 transition duration-300 group-hover:scale-105"
+              className={`${CARD_IMAGE_MAX_HEIGHT_CLASS} w-auto max-w-full object-contain transition duration-300 group-hover:scale-105`}
               loading="lazy"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center bg-zinc-100 px-6 text-center text-sm text-zinc-500">
+            <div className="flex w-full items-center justify-center rounded-xl bg-zinc-100 px-6 py-14 text-center text-sm text-zinc-500">
               {EMPTY_IMAGE_LABEL}
             </div>
           )}
         </div>
-        <PlatformBadge platform={item.platform} />
       </div>
 
-      <div className="flex flex-1 flex-col gap-2 px-4 py-4">
-        <p className="m-0 text-base font-medium leading-snug text-zinc-900">{item.title}</p>
-        {item.platform && (
-          <p className="m-0 text-xs uppercase tracking-[0.18em] text-zinc-500">{item.platform}</p>
-        )}
+      <div className="flex flex-1 items-stretch gap-3 px-4 py-4">
+        <PlatformBadge platform={item.platform} />
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <p className="m-0 text-base font-medium leading-snug text-zinc-900">{item.title}</p>
+          {item.platform && (
+            <p className="m-0 text-xs uppercase tracking-[0.18em] text-zinc-500">{item.platform}</p>
+          )}
+        </div>
       </div>
     </a>
   )
