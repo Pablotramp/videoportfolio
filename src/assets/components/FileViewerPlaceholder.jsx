@@ -199,7 +199,10 @@ function FileViewerPlaceholder({ fileRef, r2BaseUrl }) {
   }
 
   return (
-    <ul className="m-0 grid list-none grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-5 p-0 md:gap-6">
+    <ul
+      className="m-0 grid list-none grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-5 p-0 md:gap-6"
+      aria-label="Enlaces disponibles"
+    >
       {items.map((item) => (
         <li key={item.id} className="min-w-0">
           <LinkCard item={item} />
