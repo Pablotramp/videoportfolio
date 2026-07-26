@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { fetchJson, toObjectUrl } from '../../infrastructure/content/r2/r2Utils.js'
 
+const DEFAULT_LINK_TITLE_PREFIX = 'Enlace'
+const SPOTIFY_BRAND_COLOR = '#1ed760'
+
 function getTrimmedString(value) {
   return typeof value === 'string' ? value.trim() : ''
 }
@@ -28,7 +31,7 @@ function normalizeLinkItems(rawLinks, r2BaseUrl, contentFolderKey) {
     const href = getTrimmedString(entry?.link)
     if (!href) return []
 
-    const title = getTrimmedString(entry?.title) || `Enlace ${index + 1}`
+    const title = getTrimmedString(entry?.title) || `${DEFAULT_LINK_TITLE_PREFIX} ${index + 1}`
     const platform = getTrimmedString(entry?.platform) || getTrimmedString(entry?.plataform)
     const imgName = getTrimmedString(entry?.img)
     const imageUrl =
@@ -50,7 +53,10 @@ function normalizeLinkItems(rawLinks, r2BaseUrl, contentFolderKey) {
 
 function SpotifyBadge() {
   return (
-    <span className="pointer-events-none absolute top-0 right-0 z-10 block h-12 w-12 translate-x-1/2 -translate-y-1/2 rounded-full bg-[#1ed760] p-2 text-black shadow-lg ring-4 ring-white/80">
+    <span
+      className="pointer-events-none absolute top-0 right-0 z-10 block h-12 w-12 translate-x-1/2 -translate-y-1/2 rounded-full p-2 text-black shadow-lg ring-4 ring-white/80"
+      style={{ backgroundColor: SPOTIFY_BRAND_COLOR }}
+    >
       <svg viewBox="0 0 168 168" aria-hidden="true" className="h-full w-full fill-current">
         <path d="m83.996 0c-46.319 0-83.996 37.677-83.996 83.996 0 46.32 37.677 83.996 83.996 83.996s84.004-37.676 84.004-83.996c0-46.319-37.685-83.996-84.004-83.996zm38.51 121.123c-1.503 2.465-4.727 3.243-7.193 1.739-19.7-12.03-44.505-14.754-73.726-8.101-2.812.641-5.612-1.121-6.254-3.932-.642-2.812 1.118-5.611 3.931-6.254 31.978-7.289 59.366-4.178 81.479 9.322 2.465 1.503 3.244 4.724 1.763 7.226zm10.272-22.853c-1.893 3.077-5.927 4.043-9.004 2.152-22.556-13.858-56.94-17.869-83.624-9.746-3.463 1.053-7.127-.898-8.18-4.361-1.053-3.463.897-7.126 4.361-8.18 30.48-9.288 68.404-4.79 94.316 11.121 3.079 1.892 4.042 5.926 2.131 9.014zm.882-23.802c-27.054-16.071-71.681-17.555-97.511-10.225-4.148 1.176-8.47-1.237-9.646-5.385-1.175-4.149 1.236-8.47 5.385-9.646 29.638-8.405 78.912-6.783 109.74 11.531 3.693 2.194 4.906 6.969 2.712 10.663-2.194 3.672-6.972 4.881-10.68 2.684z" />
       </svg>
