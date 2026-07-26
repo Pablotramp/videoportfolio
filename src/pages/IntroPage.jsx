@@ -98,7 +98,6 @@ function IntroPage({
             src={loadingImgTitle}
             alt={title ?? ''}
             className="max-w-full max-h-full"
-            style={{ width: 'auto', height: 'auto' }}
           />
         ) : (
           <h1
