@@ -42,7 +42,7 @@ function normalizeLinkItems(rawLinks, r2BaseUrl, contentFolderKey) {
 
     return [
       {
-        id: `${href}-${index}`,
+        id: `${index}-${title}-${imgName || href}`,
         href,
         title,
         platform,
@@ -82,11 +82,12 @@ function LinkCard({ item }) {
       aria-label={item.title}
     >
       <div className="relative overflow-visible rounded-t-2xl">
+        {item.platform && <span className="sr-only">Disponible en {item.platform}</span>}
         <div className="aspect-[4/5] overflow-hidden rounded-t-2xl bg-zinc-200">
           {item.imageUrl ? (
             <img
               src={item.imageUrl}
-              alt={item.title}
+              alt=""
               className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
               loading="lazy"
             />
