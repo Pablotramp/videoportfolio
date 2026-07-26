@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { fetchJson, toObjectUrl } from '../../infrastructure/content/r2/r2Utils.js'
 
 const DEFAULT_LINK_TITLE_PREFIX = 'Enlace'
+const EMPTY_IMAGE_LABEL = 'Sin imagen'
 const SPOTIFY_BRAND_COLOR = '#1ed760'
 
 function getTrimmedString(value) {
@@ -77,7 +78,7 @@ function LinkCard({ item }) {
       href={item.href}
       target="_blank"
       rel="noreferrer"
-      className="group flex h-full flex-col overflow-visible rounded-2xl border border-black/10 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-black"
+      className="group flex h-full flex-col overflow-visible rounded-2xl border border-black/10 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-zinc-950 focus-visible:ring-2 focus-visible:ring-white"
       aria-label={item.title}
     >
       <div className="relative overflow-visible rounded-t-2xl">
@@ -91,7 +92,7 @@ function LinkCard({ item }) {
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-zinc-100 px-6 text-center text-sm text-zinc-500">
-              Sin imagen
+              {EMPTY_IMAGE_LABEL}
             </div>
           )}
         </div>
