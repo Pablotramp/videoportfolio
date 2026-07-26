@@ -4,6 +4,7 @@ import { fetchJson, toObjectUrl } from '../../infrastructure/content/r2/r2Utils.
 const DEFAULT_LINK_TITLE_PREFIX = 'Enlace'
 const EMPTY_IMAGE_LABEL = 'Sin imagen'
 const SPOTIFY_BRAND_COLOR = '#1ed760'
+const SPOTIFY_BADGE_POSITION = '66.67%'
 
 function getTrimmedString(value) {
   return typeof value === 'string' ? value.trim() : ''
@@ -56,7 +57,12 @@ function SpotifyBadge() {
   return (
     <span
       className="pointer-events-none absolute z-10 block h-9 w-9 text-current"
-      style={{ top: '66.67%', left: '66.67%', color: SPOTIFY_BRAND_COLOR, transform: 'translate(-50%, -50%)' }}
+      style={{
+        top: SPOTIFY_BADGE_POSITION,
+        left: SPOTIFY_BADGE_POSITION,
+        color: SPOTIFY_BRAND_COLOR,
+        transform: 'translate(-50%, -50%)',
+      }}
     >
       <svg viewBox="0 0 24 24" aria-hidden="true" className="h-full w-full" fill="none">
         <path
@@ -94,7 +100,7 @@ function LinkCard({ item }) {
     >
       <div className="relative overflow-visible rounded-t-2xl">
         {item.platform && <span className="sr-only">Disponible en {item.platform}</span>}
-        <div className="aspect-[4/5] overflow-hidden rounded-t-2xl bg-zinc-100">
+        <div className="aspect-[4/5] overflow-hidden rounded-t-2xl bg-zinc-200">
           {item.imageUrl ? (
             <div className="flex h-full w-full items-center justify-center p-4">
               <img
