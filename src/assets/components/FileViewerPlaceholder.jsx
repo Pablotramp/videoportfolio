@@ -55,11 +55,22 @@ function normalizeLinkItems(rawLinks, r2BaseUrl, contentFolderKey) {
 function SpotifyBadge() {
   return (
     <span
-      className="pointer-events-none absolute top-0 right-0 z-10 block h-12 w-12 translate-x-1/2 -translate-y-1/2 rounded-full p-2 text-black shadow-lg ring-4 ring-white/80"
-      style={{ backgroundColor: SPOTIFY_BRAND_COLOR }}
+      className="pointer-events-none absolute z-10 block h-9 w-9 text-current"
+      style={{ top: '66.67%', left: '66.67%', color: SPOTIFY_BRAND_COLOR, transform: 'translate(-50%, -50%)' }}
     >
-      <svg viewBox="0 0 168 168" aria-hidden="true" className="h-full w-full fill-current">
-        <path d="m83.996 0c-46.319 0-83.996 37.677-83.996 83.996 0 46.32 37.677 83.996 83.996 83.996s84.004-37.676 84.004-83.996c0-46.319-37.685-83.996-84.004-83.996zm38.51 121.123c-1.503 2.465-4.727 3.243-7.193 1.739-19.7-12.03-44.505-14.754-73.726-8.101-2.812.641-5.612-1.121-6.254-3.932-.642-2.812 1.118-5.611 3.931-6.254 31.978-7.289 59.366-4.178 81.479 9.322 2.465 1.503 3.244 4.724 1.763 7.226zm10.272-22.853c-1.893 3.077-5.927 4.043-9.004 2.152-22.556-13.858-56.94-17.869-83.624-9.746-3.463 1.053-7.127-.898-8.18-4.361-1.053-3.463.897-7.126 4.361-8.18 30.48-9.288 68.404-4.79 94.316 11.121 3.079 1.892 4.042 5.926 2.131 9.014zm.882-23.802c-27.054-16.071-71.681-17.555-97.511-10.225-4.148 1.176-8.47-1.237-9.646-5.385-1.175-4.149 1.236-8.47 5.385-9.646 29.638-8.405 78.912-6.783 109.74 11.531 3.693 2.194 4.906 6.969 2.712 10.663-2.194 3.672-6.972 4.881-10.68 2.684z" />
+      <svg viewBox="0 0 24 24" aria-hidden="true" className="h-full w-full" fill="none">
+        <path
+          d="M18.767 10.168a.75.75 0 0 1-1.031.248c-2.791-1.71-7.059-2.097-12.685-1.149a.75.75 0 0 1-.249-1.48c6.024-1.016 10.663-.569 13.717 1.301a.75.75 0 0 1 .248 1.03Z"
+          fill="currentColor"
+        />
+        <path
+          d="M20.24 6.89a.938.938 0 0 1-1.288.308C15.757 5.236 10.889 4.66 6.44 5.66a.937.937 0 0 1-.412-1.829c4.942-1.111 10.218-.484 13.903 1.704a.938.938 0 0 1 .309 1.288Z"
+          fill="currentColor"
+        />
+        <path
+          d="M17.312 13.818a.625.625 0 0 1-.86.208c-2.397-1.469-5.4-1.802-8.928-.99a.625.625 0 0 1-.28-1.219c3.85-.886 7.157-.51 9.862 1.149a.625.625 0 0 1 .206.852Z"
+          fill="currentColor"
+        />
       </svg>
     </span>
   )
@@ -83,14 +94,16 @@ function LinkCard({ item }) {
     >
       <div className="relative overflow-visible rounded-t-2xl">
         {item.platform && <span className="sr-only">Disponible en {item.platform}</span>}
-        <div className="aspect-[4/5] overflow-hidden rounded-t-2xl bg-zinc-200">
+        <div className="aspect-[4/5] overflow-hidden rounded-t-2xl bg-zinc-100">
           {item.imageUrl ? (
-            <img
-              src={item.imageUrl}
-              alt=""
-              className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-              loading="lazy"
-            />
+            <div className="flex h-full w-full items-center justify-center p-4">
+              <img
+                src={item.imageUrl}
+                alt=""
+                className="h-full w-full object-contain transition duration-300 group-hover:scale-105"
+                loading="lazy"
+              />
+            </div>
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-zinc-100 px-6 text-center text-sm text-zinc-500">
               {EMPTY_IMAGE_LABEL}
@@ -202,7 +215,7 @@ function FileViewerPlaceholder({ fileRef, r2BaseUrl }) {
 
   return (
     <ul
-      className="m-0 grid list-none grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-5 p-0 md:gap-6"
+      className="m-0 grid list-none grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-6 p-0 md:gap-7"
       aria-label="Enlaces disponibles"
     >
       {items.map((item) => (
