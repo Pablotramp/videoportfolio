@@ -20,6 +20,7 @@ const DEFAULT_FADE_OUT_DURATION_MS = 500
 function IntroPage({
   title,
   loadingImg,
+  loadingImgTitle,
   chargeTime,
   textColor,
   backgroundColor,
@@ -91,12 +92,22 @@ function IntroPage({
       }}
     >
       <div className="flex h-1/2 w-full items-center justify-center px-6">
-        <h1
-          id="intro-title"
-          className="m-0 text-center font-serif text-5xl font-semibold tracking-tight md:text-7xl"
-        >
-          {title}
-        </h1>
+        {loadingImgTitle ? (
+          <img
+            id="intro-title"
+            src={loadingImgTitle}
+            alt={title ?? ''}
+            className="max-w-full max-h-full"
+            style={{ width: 'auto', height: 'auto' }}
+          />
+        ) : (
+          <h1
+            id="intro-title"
+            className="m-0 text-center font-serif text-5xl font-semibold tracking-tight md:text-7xl"
+          >
+            {title}
+          </h1>
+        )}
       </div>
       <div className="flex h-1/2 w-full items-center justify-center px-6 pb-6">
         {loadingImg && (
