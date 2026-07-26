@@ -29,7 +29,7 @@ function normalizeLinkItems(rawLinks, r2BaseUrl, contentFolderKey) {
     if (!href) return []
 
     const title = getTrimmedString(entry?.title) || `Enlace ${index + 1}`
-    const platform = getTrimmedString(entry?.plataform)
+    const platform = getTrimmedString(entry?.platform) || getTrimmedString(entry?.plataform)
     const imgName = getTrimmedString(entry?.img)
     const imageUrl =
       imgName && r2BaseUrl && contentFolderKey
@@ -59,7 +59,8 @@ function SpotifyBadge() {
 }
 
 function PlatformBadge({ platform }) {
-  const normalizedPlatform = platform.toLowerCase()
+  const normalizedPlatform = getTrimmedString(platform).toLowerCase()
+  if (!normalizedPlatform) return null
   if (normalizedPlatform === 'spotify') return <SpotifyBadge />
   return null
 }
