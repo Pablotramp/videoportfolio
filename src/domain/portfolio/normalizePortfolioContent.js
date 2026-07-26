@@ -12,6 +12,7 @@ export function normalizePortfolioContent(rawContent = {}) {
     manifestSections = null,
     manifestFiles = null,
     loadingImgUrl = null,
+    loadingImgTitleUrl = null,
     faviconUrl = null,
   } = rawContent
 
@@ -68,6 +69,7 @@ export function normalizePortfolioContent(rawContent = {}) {
     sectionManifest: manifestSections,
     manifestFiles,
     loadingImg: loadingImgUrl,
+    loadingImgTitle: loadingImgTitleUrl,
     loadingChargeTime: parsedJson.loading?.chargeTime ?? null,
     loadingTextColor: parsedJson.loading?.textColor ?? null,
     loadingBackgroundColor: parsedJson.loading?.backgroundColor ?? null,

@@ -9,6 +9,7 @@ const DEFAULT_PORTFOLIO = {
   r2BaseUrl: null,
   sectionManifest: null,
   loadingImg: null,
+  loadingImgTitle: null,
   loadingChargeTime: null,
   loadingTextColor: null,
   loadingBackgroundColor: null,

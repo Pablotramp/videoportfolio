@@ -95,6 +95,7 @@ function App() {
         <IntroPage
           title={portfolio.siteTitle}
           loadingImg={portfolio.loadingImg}
+          loadingImgTitle={portfolio.loadingImgTitle}
           chargeTime={portfolio.loadingChargeTime}
           textColor={portfolio.loadingTextColor}
           backgroundColor={portfolio.loadingBackgroundColor}

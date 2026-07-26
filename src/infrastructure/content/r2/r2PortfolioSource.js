@@ -496,6 +496,12 @@ export function createR2PortfolioSource(config = {}) {
             ? `${contentBaseUrl}/${imgName.trim()}`
             : null
         })(),
+        loadingImgTitleUrl: (() => {
+          const imgTitleName = estructuraJson?.carga?.imgTitle
+          return typeof imgTitleName === 'string' && imgTitleName.trim()
+            ? `${contentBaseUrl}/${imgTitleName.trim()}`
+            : null
+        })(),
         faviconUrl: (() => {
           const faviconName = estructuraJson?.favicon
           return typeof faviconName === 'string' && faviconName.trim()

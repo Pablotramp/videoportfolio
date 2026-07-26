@@ -25,6 +25,7 @@
  *     },
  *     "carga": {                 // Splash/intro screen — all optional
  *       "img"?: string,          // Filename of the image shown on the intro screen (e.g. a GIF)
+ *       "imgTitle"?: string,     // Filename of an image that replaces the text title on the intro screen
  *       "chargeTime"?: number,   // Seconds visible before auto-dismiss
  *       "textColor"?: string,    // Hex color for intro text
  *       "backgroundColor"?: string // Hex color for intro background
@@ -131,7 +132,8 @@ function resolveSectionType(entry) {
  *   loading: {
  *     chargeTime: number | null,
  *     textColor: string | null,
- *     backgroundColor: string | null
+ *     backgroundColor: string | null,
+ *     imgTitle: string | null
  *   } | null
  * }}
  */
@@ -193,6 +195,7 @@ export function parseEstructuraJson(raw) {
         chargeTime: normalizeChargeTime(carga.chargeTime),
         textColor: normalizeHexColor(carga.textColor),
         backgroundColor: normalizeHexColor(carga.backgroundColor),
+        imgTitle: normalizeString(carga.imgTitle),
       }
     : null
 
