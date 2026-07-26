@@ -4,7 +4,7 @@ import { fetchJson, toObjectUrl } from '../../infrastructure/content/r2/r2Utils.
 const DEFAULT_LINK_TITLE_PREFIX = 'Enlace'
 const EMPTY_IMAGE_LABEL = 'Sin imagen'
 const SPOTIFY_BRAND_COLOR = '#1ed760'
-const SPOTIFY_BADGE_CENTER_POSITION = '66.67%'
+const SPOTIFY_BADGE_OFFSET = '66.67%'
 
 function getTrimmedString(value) {
   return typeof value === 'string' ? value.trim() : ''
@@ -58,8 +58,8 @@ function SpotifyBadge() {
     <span
       className="pointer-events-none absolute z-10 block h-9 w-9 text-current"
       style={{
-        top: SPOTIFY_BADGE_CENTER_POSITION,
-        left: SPOTIFY_BADGE_CENTER_POSITION,
+        top: SPOTIFY_BADGE_OFFSET,
+        left: SPOTIFY_BADGE_OFFSET,
         color: SPOTIFY_BRAND_COLOR,
         transform: 'translate(-50%, -50%)',
       }}
@@ -100,16 +100,14 @@ function LinkCard({ item }) {
     >
       <div className="relative overflow-visible rounded-t-2xl">
         {item.platform && <span className="sr-only">Disponible en {item.platform}</span>}
-        <div className="aspect-[4/5] overflow-hidden rounded-t-2xl bg-zinc-200">
+        <div className="flex aspect-[4/5] items-center justify-center overflow-hidden rounded-t-2xl bg-zinc-200 p-4">
           {item.imageUrl ? (
-            <div className="flex h-full w-full items-center justify-center p-4">
-              <img
-                src={item.imageUrl}
-                alt=""
-                className="h-full w-full object-contain transition duration-300 group-hover:scale-105"
-                loading="lazy"
-              />
-            </div>
+            <img
+              src={item.imageUrl}
+              alt=""
+              className="h-full w-full object-contain transition duration-300 group-hover:scale-105"
+              loading="lazy"
+            />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-zinc-100 px-6 text-center text-sm text-zinc-500">
               {EMPTY_IMAGE_LABEL}
