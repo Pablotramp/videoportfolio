@@ -4,7 +4,7 @@ import { fetchJson, toObjectUrl } from '../../infrastructure/content/r2/r2Utils.
 const DEFAULT_LINK_TITLE_PREFIX = 'Enlace'
 const EMPTY_IMAGE_LABEL = 'Sin imagen'
 const SPOTIFY_BRAND_COLOR = '#1ed760'
-const SPOTIFY_BADGE_POSITION = '66.67%'
+const SPOTIFY_BADGE_CENTER_POSITION = '66.67%'
 
 function getTrimmedString(value) {
   return typeof value === 'string' ? value.trim() : ''
@@ -58,8 +58,8 @@ function SpotifyBadge() {
     <span
       className="pointer-events-none absolute z-10 block h-9 w-9 text-current"
       style={{
-        top: SPOTIFY_BADGE_POSITION,
-        left: SPOTIFY_BADGE_POSITION,
+        top: SPOTIFY_BADGE_CENTER_POSITION,
+        left: SPOTIFY_BADGE_CENTER_POSITION,
         color: SPOTIFY_BRAND_COLOR,
         transform: 'translate(-50%, -50%)',
       }}
