@@ -41,7 +41,7 @@ export default function FloatingSpot({ spot }) {
     if (!el) return
 
     const footerH = Number.parseFloat(
-      getComputedStyle(document.documentElement).getPropertyValue('--footer-h') || String(FOOTER_HEIGHT_PX),
+      getComputedStyle(document.documentElement).getPropertyValue('--footer-h') || FOOTER_HEIGHT_PX,
     ) || FOOTER_HEIGHT_PX
 
     const initialBottom = footerH + 80 // 5rem ≈ 80px
@@ -70,7 +70,7 @@ export default function FloatingSpot({ spot }) {
     // Allow clicks on the inner link/image to pass through without starting a drag
     if (
       event.target instanceof Element &&
-      event.target.closest('a,button')
+      event.target.closest('a, button')
     ) {
       return
     }
