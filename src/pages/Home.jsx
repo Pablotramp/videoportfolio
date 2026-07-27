@@ -11,6 +11,7 @@ const WHEEL_DEBOUNCE_MS = 550
 const DEFAULT_MEDIA_BACKGROUND = '#0a0a0a'
 const SPOT_SLOT_HEIGHT = 'clamp(4rem, 12vh, 7.5rem)'
 const SPOT_MAX_HEIGHT = 'clamp(3rem, 10vh, 6rem)'
+const SPOT_MAX_WIDTH = '20rem'
 const HOME_HEIGHT = `calc(100dvh - ${HEADER_HEIGHT}px - var(--footer-h, ${FOOTER_HEIGHT}px))`
 const SLIDE_HEIGHT = `calc(${HOME_HEIGHT} - var(--spot-space, 0px))`
 const HOME_LAYOUT_STYLE = {
@@ -64,7 +65,7 @@ function Home({ sections, spot }) {
     ...HOME_LAYOUT_STYLE,
     '--spot-space': spotVisible ? SPOT_SLOT_HEIGHT : '0px',
     '--spot-max-h': spotVisible ? SPOT_MAX_HEIGHT : '0px',
-    '--spot-max-w': '20rem',
+    '--spot-max-w': SPOT_MAX_WIDTH,
   }
 
   const handleImageError = useCallback((entryName) => {
