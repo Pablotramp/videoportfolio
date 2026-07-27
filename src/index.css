@@ -46,6 +46,7 @@
 
 #secciones {
   --spot-space: 0px;
+  --section-pagination-clearance: calc(env(safe-area-inset-bottom, 0px) + 3.5rem);
 }
 
 #secciones .section-slider {
@@ -83,8 +84,7 @@
 #secciones .section-slide__content {
   display: grid;
   place-items: center;
-  padding: clamp(1.5rem, 4vw, 3rem) clamp(1.5rem, 4vw, 3rem)
-    calc(env(safe-area-inset-bottom, 0px) + 3.5rem);
+  padding: clamp(1.5rem, 4vw, 3rem) clamp(1.5rem, 4vw, 3rem) var(--section-pagination-clearance);
   text-align: center;
 }
 

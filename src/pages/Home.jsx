@@ -8,6 +8,8 @@ const AUTOPLAY_MS = 4500
 const INTERACTION_PAUSE_MS = 2200
 const WHEEL_DEBOUNCE_MS = 550
 const DEFAULT_MEDIA_BACKGROUND = '#0a0a0a'
+const SPOT_SLOT_HEIGHT = 'clamp(4rem, 12vh, 7.5rem)'
+const SPOT_MAX_HEIGHT = 'clamp(3rem, 10vh, 6rem)'
 const HOME_HEIGHT = `calc(100dvh - ${HEADER_HEIGHT}px - var(--footer-h, ${FOOTER_HEIGHT}px))`
 const SLIDE_HEIGHT = `calc(${HOME_HEIGHT} - var(--spot-space, 0px))`
 const HOME_LAYOUT_STYLE = {
@@ -59,8 +61,8 @@ function Home({ sections, spot }) {
   const hasSpotConfigured = typeof spot?.imgUrl === 'string' && spot.imgUrl.trim() !== ''
   const homeStyle = {
     ...HOME_LAYOUT_STYLE,
-    '--spot-space': spotVisible ? 'clamp(4rem, 12vh, 7.5rem)' : '0px',
-    '--spot-max-h': spotVisible ? 'clamp(3rem, 10vh, 6rem)' : '0px',
+    '--spot-space': spotVisible ? SPOT_SLOT_HEIGHT : '0px',
+    '--spot-max-h': spotVisible ? SPOT_MAX_HEIGHT : '0px',
     '--spot-max-w': '20rem',
   }
 
