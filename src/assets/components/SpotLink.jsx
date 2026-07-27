@@ -95,6 +95,8 @@ export default function SpotLink({ spot, onReadyChange }) {
 
   if (!isReady) return null
 
+  /* --spot-max-h and --spot-max-w are CSS custom properties set by the parent
+     context (e.g. .section-slide__cta-row in index.css). */
   const image = (
     <img
       src={svgDataUrl}
