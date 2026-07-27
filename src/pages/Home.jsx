@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import SpotLink from '../assets/components/SpotLink.jsx'
-import getSpotImageUrl from '../assets/utils/getSpotImageUrl.js'
 
 const HEADER_HEIGHT = 64
 const FOOTER_HEIGHT = 41
@@ -9,7 +7,6 @@ const AUTOPLAY_MS = 4500
 const INTERACTION_PAUSE_MS = 2200
 const WHEEL_DEBOUNCE_MS = 550
 const DEFAULT_MEDIA_BACKGROUND = '#0a0a0a'
-const SPOT_MAX_WIDTH = '20rem'
 const HOME_HEIGHT = `calc(100dvh - ${HEADER_HEIGHT}px - var(--footer-h, ${FOOTER_HEIGHT}px))`
 const HOME_LAYOUT_STYLE = {
   minHeight: `calc(100vh - ${HEADER_HEIGHT}px - var(--footer-h, ${FOOTER_HEIGHT}px))`,
@@ -36,7 +33,7 @@ const BREADCRUMBS_STYLE = {
  */
 const SECTION_IMAGE_DEBUG = false
 
-function Home({ sections, spot }) {
+function Home({ sections }) {
   const sliderRef = useRef(null)
   const slideRefs = useRef([])
   const [activeIndex, setActiveIndex] = useState(0)
@@ -55,11 +52,7 @@ function Home({ sections, spot }) {
   const [supportsFinePointer] = useState(SUPPORTS_FINE_POINTER)
 
   const sectionCount = sections.length
-  const hasSpotConfigured = getSpotImageUrl(spot) !== ''
-  const homeStyle = {
-    ...HOME_LAYOUT_STYLE,
-    '--spot-max-w': SPOT_MAX_WIDTH,
-  }
+  const homeStyle = HOME_LAYOUT_STYLE
 
   const handleImageError = useCallback((entryName) => {
     setFailedImages((previous) => new Set([...previous, entryName]))
@@ -352,7 +345,6 @@ function Home({ sections, spot }) {
                       >
                         Abrir
                       </Link>
-                      {hasSpotConfigured && <SpotLink spot={spot} />}
                     </div>
                   </div>
                 </div>

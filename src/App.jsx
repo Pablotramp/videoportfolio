@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
 import MainLayout from './assets/layouts/MainLayout.jsx'
 import { usePortfolio } from './application/portfolio/usePortfolio.js'
+import FloatingSpot from './assets/components/FloatingSpot.jsx'
 import Home from './pages/Home.jsx'
 import IntroPage from './pages/IntroPage.jsx'
 import SeccionPage from './pages/SeccionPage.jsx'
@@ -13,15 +14,28 @@ function App() {
   const location = useLocation()
   const [showIntro, setShowIntro] = useState(true)
   const [introExiting, setIntroExiting] = useState(false)
+  // Once the user leaves the home carousel, the spot is hidden permanently
+  // for this page session (reloading restores it).
+  const [spotEverLeft, setSpotEverLeft] = useState(false)
+  const prevIsHomeRef = useRef(true)
 
   const isHome = location.pathname === '/'
   const isFullBleedHome = !portfolio.loading && !portfolio.error && isHome
   const hasSiteTitle = Boolean(portfolio.siteTitle)
+  const showFloatingSpot = isHome && !spotEverLeft && !portfolio.loading && !portfolio.error
 
   const currentSection = !portfolio.loading && !portfolio.error
     ? (portfolio.sections.find((s) => location.pathname === `/seccion/${s.slug}`) ?? null)
     : null
   const isSectionPage = currentSection !== null
+
+  // Mark the spot as permanently hidden once the user navigates away from home.
+  useEffect(() => {
+    if (prevIsHomeRef.current && !isHome) {
+      setSpotEverLeft(true)
+    }
+    prevIsHomeRef.current = isHome
+  }, [isHome])
 
   // Update document title from _estructura.json
   useEffect(() => {
@@ -45,7 +59,7 @@ function App() {
 
   let content = (
     <Routes>
-      <Route path="/" element={<Home sections={portfolio.sections} spot={portfolio.spot} />} />
+      <Route path="/" element={<Home sections={portfolio.sections} />} />
       <Route
         path="/seccion/:slug"
         element={<SeccionPage sections={portfolio.sections} r2BaseUrl={portfolio.r2BaseUrl} sectionManifest={portfolio.sectionManifest} manifestFiles={portfolio.manifestFiles} />}
@@ -104,6 +118,9 @@ function App() {
           onDismiss={dismissIntro}
         />
       )}
+      {/* Floating draggable spot — visible only while on the home carousel,
+          and only until the user navigates away for the first time. */}
+      {showFloatingSpot && <FloatingSpot spot={portfolio.spot} />}
       <MainLayout
         footer={portfolio.footer}
         sections={portfolio.sections}
