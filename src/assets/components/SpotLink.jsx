@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import getSpotImageUrl from '../utils/getSpotImageUrl.js'
 
 const SPOTIFY_DEEP_LINK_REGEX = /^spotify:[a-zA-Z]+:[a-zA-Z0-9]+$/
 const SPOTIFY_ID_REGEX = /^[a-zA-Z0-9]{22}$/
@@ -51,13 +52,21 @@ function getSpotifyDeepLink(href) {
   }
 }
 
-export default function SpotLink({ spot }) {
+export default function SpotLink({ spot, onReadyChange }) {
   const [svgDataUrl, setSvgDataUrl] = useState(null)
   const [svgSourceUrl, setSvgSourceUrl] = useState(null)
+  const reportedReadyRef = useRef(null)
 
   const spotHref = useMemo(() => sanitizeSpotHref(spot?.link), [spot?.link])
   const spotifyDeepLink = useMemo(() => getSpotifyDeepLink(spotHref), [spotHref])
-  const spotImgUrl = typeof spot?.imgUrl === 'string' ? spot.imgUrl.trim() : ''
+  const spotImgUrl = getSpotImageUrl(spot)
+  const isReady = Boolean(spotImgUrl && svgDataUrl && svgSourceUrl === spotImgUrl)
+
+  useEffect(() => {
+    if (reportedReadyRef.current === isReady) return
+    reportedReadyRef.current = isReady
+    onReadyChange?.(isReady)
+  }, [isReady, onReadyChange])
 
   useEffect(() => {
     if (!spotImgUrl) return undefined
@@ -84,25 +93,29 @@ export default function SpotLink({ spot }) {
     return () => controller.abort()
   }, [spotImgUrl])
 
-  if (!spotImgUrl || !svgDataUrl || svgSourceUrl !== spotImgUrl) return null
+  if (!isReady) return null
 
   const image = (
     <img
       src={svgDataUrl}
       alt={spot?.platform ? `Anuncio ${spot.platform}` : 'Anuncio'}
-      className="h-40 w-auto max-w-[20rem] object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.35)]"
+      className="h-auto w-auto object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.35)]"
+      style={{
+        maxHeight: 'var(--spot-max-h, 6rem)',
+        maxWidth: 'min(100%, var(--spot-max-w, 20rem))',
+      }}
       loading="lazy"
     />
   )
 
   return (
-    <div className="pointer-events-none fixed right-4 bottom-[calc(var(--footer-h,41px)+4.5rem)] z-40">
+    <div className="flex w-full items-end justify-center md:justify-end">
       {spotHref ? (
         <a
           href={spotHref}
           target={spotHref.startsWith('http') ? '_blank' : undefined}
           rel={spotHref.startsWith('http') ? 'noopener noreferrer' : undefined}
-          className="pointer-events-auto inline-flex"
+          className="inline-flex"
           aria-label={spot?.platform ? `Abrir ${spot.platform}` : 'Abrir anuncio'}
           onClick={(event) => {
             if (!spotifyDeepLink || spotifyDeepLink === spotHref || typeof window === 'undefined') return
