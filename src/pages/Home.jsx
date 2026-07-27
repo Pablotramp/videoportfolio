@@ -8,7 +8,12 @@ const AUTOPLAY_MS = 4500
 const INTERACTION_PAUSE_MS = 2200
 const WHEEL_DEBOUNCE_MS = 550
 const DEFAULT_MEDIA_BACKGROUND = '#0a0a0a'
-const SLIDE_HEIGHT = `calc(100dvh - ${HEADER_HEIGHT}px - var(--footer-h, ${FOOTER_HEIGHT}px))`
+const HOME_HEIGHT = `calc(100dvh - ${HEADER_HEIGHT}px - var(--footer-h, ${FOOTER_HEIGHT}px))`
+const SLIDE_HEIGHT = `calc(${HOME_HEIGHT} - var(--spot-space, 0px))`
+const HOME_LAYOUT_STYLE = {
+  minHeight: `calc(100vh - ${HEADER_HEIGHT}px - var(--footer-h, ${FOOTER_HEIGHT}px))`,
+  height: HOME_HEIGHT,
+}
 const SLIDE_HEIGHT_STYLE = { height: SLIDE_HEIGHT }
 const SLIDE_LAYOUT_STYLE = { height: SLIDE_HEIGHT }
 const PRIMARY_MOUSE_BUTTON = 0
@@ -35,6 +40,7 @@ function Home({ sections, spot }) {
   const sliderRef = useRef(null)
   const slideRefs = useRef([])
   const [activeIndex, setActiveIndex] = useState(0)
+  const [spotVisible, setSpotVisible] = useState(false)
   const activeIndexRef = useRef(0)
   const [isInteracting, setIsInteracting] = useState(false)
   const interactionTimerRef = useRef(null)
@@ -50,6 +56,13 @@ function Home({ sections, spot }) {
   const [supportsFinePointer] = useState(SUPPORTS_FINE_POINTER)
 
   const sectionCount = sections.length
+  const hasSpotConfigured = typeof spot?.imgUrl === 'string' && spot.imgUrl.trim() !== ''
+  const homeStyle = {
+    ...HOME_LAYOUT_STYLE,
+    '--spot-space': spotVisible ? 'clamp(4.5rem, 14vh, 8.5rem)' : '0px',
+    '--spot-max-h': spotVisible ? 'clamp(3.75rem, 12vh, 7rem)' : '0px',
+    '--spot-max-w': '20rem',
+  }
 
   const handleImageError = useCallback((entryName) => {
     setFailedImages((previous) => new Set([...previous, entryName]))
@@ -247,136 +260,143 @@ function Home({ sections, spot }) {
   }, [])
 
   return (
-    <section className="relative w-full" id="secciones">
-      <div
-        ref={sliderRef}
-        className={`flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden scroll-smooth touch-pan-x select-none ${
-          supportsFinePointer ? 'cursor-grab active:cursor-grabbing' : ''
-        }`}
-        aria-label="Carrusel horizontal de secciones"
-        onKeyDown={handleKeyDown}
-        onMouseEnter={() => setIsInteracting(true)}
-        onMouseLeave={() => {
-          clearTimeout(interactionTimerRef.current)
-          setIsInteracting(false)
-        }}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerEnd}
-        onPointerCancel={handlePointerEnd}
-        tabIndex={0}
-        style={SLIDE_HEIGHT_STYLE}
-      >
-        {sections.map((section, index) => {
-          const imageErrored = SECTION_IMAGE_DEBUG && section.hasConfiguredImage && failedImages.has(section.entryName)
-          const hasBackground = Boolean(section.previewImage || section.backgroundColor)
-          const overlayTextClass = hasBackground ? 'text-white' : 'text-zinc-950'
-          const openButtonClass = hasBackground
-            ? 'border-white text-white hover:bg-white hover:text-black'
-            : 'border-black text-black hover:bg-black hover:text-white'
-          const sectionSurfaceColor =
-            section.backgroundColor ?? (section.previewImage ? DEFAULT_MEDIA_BACKGROUND : undefined)
-
-          return (
-            <article
-              key={section.entryName}
-              ref={setSlideRef(index)}
-              className="section-slide relative min-w-full snap-start"
-              aria-label={section.name}
-              style={{
-                ...SLIDE_LAYOUT_STYLE,
-                backgroundColor: sectionSurfaceColor,
-              }}
-            >
-              <div
-                className="section-slide__media relative z-10"
-                style={{ backgroundColor: sectionSurfaceColor }}
-              >
-                {!imageErrored && section.previewImage && (
-                  <img
-                    src={section.previewImage}
-                    alt={section.name}
-                    onError={SECTION_IMAGE_DEBUG ? () => handleImageError(section.entryName) : undefined}
-                  />
-                )}
-              </div>
-
-              {/* Debug fallback — shown instead of the cover image when it fails to load
-                  and SECTION_IMAGE_DEBUG is enabled. Contains sensitive data; keep disabled
-                  in production (set SECTION_IMAGE_DEBUG = false). */}
-              {imageErrored && (
-                <div className="absolute inset-0 z-10 overflow-auto bg-black/80 p-4 font-mono text-xs text-green-400">
-                  <p className="mb-2 text-yellow-300 uppercase tracking-widest">
-                    ⚠ imagen no cargada — objeto Section
-                  </p>
-                  <pre className="whitespace-pre-wrap break-all">
-                    {JSON.stringify(
-                      typeof section.toDebugInfo === 'function'
-                        ? section.toDebugInfo()
-                        : section,
-                      null,
-                      2,
-                    )}
-                  </pre>
-                </div>
-              )}
-
-              {/* Click-navigation overlay — sits below the CTA so links remain clickable */}
-              <div
-                className="absolute inset-0 z-[5] cursor-pointer"
-                onClick={handleClickNavigate}
-                aria-hidden="true"
-              />
-
-              <div
-                className={`section-slide__content relative z-10 ${overlayTextClass}`}
-              >
-                <div className="section-slide__content-inner">
-                  <h2 className="m-0 font-serif text-4xl font-semibold tracking-tight md:text-5xl">{section.name}</h2>
-                  <Link
-                    className={`inline-flex w-fit items-center justify-center border px-4 py-2 text-sm uppercase tracking-[0.1em] no-underline transition ${openButtonClass}`}
-                    aria-label={`Abrir ${section.name}`}
-                    to={`/seccion/${section.slug}`}
-                  >
-                    Abrir
-                  </Link>
-                </div>
-              </div>
-            </article>
-          )
-        })}
-      </div>
-
-      {/* Bullets — always bottom-centered on every breakpoint */}
-      <nav
-        className="pointer-events-none absolute z-20 flex justify-center"
-        aria-label="Paginación de secciones"
-        style={BREADCRUMBS_STYLE}
-      >
-        <ul className="pointer-events-auto m-0 flex list-none items-center gap-2 rounded-full bg-black/40 px-3 py-2">
+    <section className="flex w-full flex-col" id="secciones" style={homeStyle}>
+      <div className="relative" style={SLIDE_HEIGHT_STYLE}>
+        <div
+          ref={sliderRef}
+          className={`section-slider flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden scroll-smooth touch-pan-x select-none ${
+            supportsFinePointer ? 'cursor-grab active:cursor-grabbing' : ''
+          }`}
+          aria-label="Carrusel horizontal de secciones"
+          onKeyDown={handleKeyDown}
+          onMouseEnter={() => setIsInteracting(true)}
+          onMouseLeave={() => {
+            clearTimeout(interactionTimerRef.current)
+            setIsInteracting(false)
+          }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerEnd}
+          onPointerCancel={handlePointerEnd}
+          tabIndex={0}
+          style={SLIDE_HEIGHT_STYLE}
+        >
           {sections.map((section, index) => {
-            const isActive = index === activeIndex
+            const imageErrored = SECTION_IMAGE_DEBUG && section.hasConfiguredImage && failedImages.has(section.entryName)
+            const hasBackground = Boolean(section.previewImage || section.backgroundColor)
+            const overlayTextClass = hasBackground ? 'text-white' : 'text-zinc-950'
+            const openButtonClass = hasBackground
+              ? 'border-white text-white hover:bg-white hover:text-black'
+              : 'border-black text-black hover:bg-black hover:text-white'
+            const sectionSurfaceColor =
+              section.backgroundColor ?? (section.previewImage ? DEFAULT_MEDIA_BACKGROUND : undefined)
 
             return (
-              <li key={section.entryName}>
-                <button
-                  type="button"
-                  className={`h-2.5 w-2.5 rounded-full border transition ${
-                    isActive ? 'border-white bg-white' : 'border-white/50 bg-transparent'
-                  }`}
-                  aria-label={`Ir a ${section.name}`}
-                  aria-current={isActive ? 'step' : undefined}
-                  onClick={() => {
-                    scrollToIndex(index)
-                    markInteraction()
-                  }}
+              <article
+                key={section.entryName}
+                ref={setSlideRef(index)}
+                className="section-slide relative min-w-full snap-start"
+                aria-label={section.name}
+                style={{
+                  ...SLIDE_LAYOUT_STYLE,
+                  backgroundColor: sectionSurfaceColor,
+                }}
+              >
+                <div
+                  className="section-slide__media relative z-10"
+                  style={{ backgroundColor: sectionSurfaceColor }}
+                >
+                  {!imageErrored && section.previewImage && (
+                    <img
+                      src={section.previewImage}
+                      alt={section.name}
+                      onError={SECTION_IMAGE_DEBUG ? () => handleImageError(section.entryName) : undefined}
+                    />
+                  )}
+                </div>
+
+                {/* Debug fallback — shown instead of the cover image when it fails to load
+                    and SECTION_IMAGE_DEBUG is enabled. Contains sensitive data; keep disabled
+                    in production (set SECTION_IMAGE_DEBUG = false). */}
+                {imageErrored && (
+                  <div className="absolute inset-0 z-10 overflow-auto bg-black/80 p-4 font-mono text-xs text-green-400">
+                    <p className="mb-2 text-yellow-300 uppercase tracking-widest">
+                      ⚠ imagen no cargada — objeto Section
+                    </p>
+                    <pre className="whitespace-pre-wrap break-all">
+                      {JSON.stringify(
+                        typeof section.toDebugInfo === 'function'
+                          ? section.toDebugInfo()
+                          : section,
+                        null,
+                        2,
+                      )}
+                    </pre>
+                  </div>
+                )}
+
+                {/* Click-navigation overlay — sits below the CTA so links remain clickable */}
+                <div
+                  className="absolute inset-0 z-[5] cursor-pointer"
+                  onClick={handleClickNavigate}
+                  aria-hidden="true"
                 />
-              </li>
+
+                <div
+                  className={`section-slide__content relative z-10 ${overlayTextClass}`}
+                >
+                  <div className="section-slide__content-inner">
+                    <h2 className="m-0 font-serif text-4xl font-semibold tracking-tight md:text-5xl">{section.name}</h2>
+                    <Link
+                      className={`inline-flex w-fit items-center justify-center border px-4 py-2 text-sm uppercase tracking-[0.1em] no-underline transition ${openButtonClass}`}
+                      aria-label={`Abrir ${section.name}`}
+                      to={`/seccion/${section.slug}`}
+                    >
+                      Abrir
+                    </Link>
+                  </div>
+                </div>
+              </article>
             )
           })}
-        </ul>
-      </nav>
-      <SpotLink spot={spot} />
+        </div>
+
+        {/* Bullets — always bottom-centered on every breakpoint */}
+        <nav
+          className="pointer-events-none absolute z-20 flex justify-center"
+          aria-label="Paginación de secciones"
+          style={BREADCRUMBS_STYLE}
+        >
+          <ul className="pointer-events-auto m-0 flex list-none items-center gap-2 rounded-full bg-black/40 px-3 py-2">
+            {sections.map((section, index) => {
+              const isActive = index === activeIndex
+
+              return (
+                <li key={section.entryName}>
+                  <button
+                    type="button"
+                    className={`h-2.5 w-2.5 rounded-full border transition ${
+                      isActive ? 'border-white bg-white' : 'border-white/50 bg-transparent'
+                    }`}
+                    aria-label={`Ir a ${section.name}`}
+                    aria-current={isActive ? 'step' : undefined}
+                    onClick={() => {
+                      scrollToIndex(index)
+                      markInteraction()
+                    }}
+                  />
+                </li>
+              )
+            })}
+          </ul>
+        </nav>
+      </div>
+
+      {hasSpotConfigured && (
+        <div className="home-spot-slot">
+          <SpotLink spot={spot} onReadyChange={setSpotVisible} />
+        </div>
+      )}
     </section>
   )
 }
