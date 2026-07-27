@@ -182,6 +182,44 @@ function resolveImagesFromManifest(baseUrl, sections, sectionImages, manifestFil
   return result
 }
 
+/**
+ * Fetch favicon.txt from the R2 bucket root and convert its SVG content to a
+ * data URI. Returns null silently if the file is missing or the fetch fails.
+ * Basic validation ensures the content looks like an SVG document and does not
+ * contain script tags.
+ *
+ * @param {string} baseUrl
+ * @returns {Promise<string | null>}
+ */
+async function fetchFaviconSvg(baseUrl) {
+  try {
+    const response = await fetch(`${baseUrl}/favicon.txt`)
+    if (!response.ok) return null
+    const svgContent = (await response.text()).trim()
+    if (!svgContent) return null
+    const lower = svgContent.toLowerCase()
+    if (!lower.includes('<svg') || lower.includes('<script')) return null
+    return `data:image/svg+xml,${encodeURIComponent(svgContent)}`
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Resolve the legacy favicon URL from _estructura.json, or return null when
+ * no favicon field is defined.
+ *
+ * @param {object|null} estructuraJson
+ * @param {string} baseUrl
+ * @returns {string | null}
+ */
+function getLegacyFaviconUrl(estructuraJson, baseUrl) {
+  const faviconName = estructuraJson?.favicon
+  return typeof faviconName === 'string' && faviconName.trim()
+    ? `${baseUrl}/${faviconName.trim()}`
+    : null
+}
+
 function createR2ConfigError() {
   return new Error(
     'R2 source requiere VITE_R2_PUBLIC_URL con la URL pública del bucket (ej: https://pub-XXXX.r2.dev).',
@@ -479,6 +517,10 @@ export function createR2PortfolioSource(config = {}) {
         }
       }
 
+      // favicon.txt — optional SVG favicon at the bucket root.
+      // Takes precedence over the legacy `favicon` field in _estructura.json.
+      const faviconSvgDataUrl = await fetchFaviconSvg(resolvedBaseUrl)
+
       return {
         estructuraJson,
         sectionImagesByName,
@@ -502,12 +544,7 @@ export function createR2PortfolioSource(config = {}) {
             ? `${contentBaseUrl}/${imgTitleName.trim()}`
             : null
         })(),
-        faviconUrl: (() => {
-          const faviconName = estructuraJson?.favicon
-          return typeof faviconName === 'string' && faviconName.trim()
-            ? `${contentBaseUrl}/${faviconName.trim()}`
-            : null
-        })(),
+        faviconUrl: faviconSvgDataUrl ?? getLegacyFaviconUrl(estructuraJson, contentBaseUrl),
         spotImgUrl: (() => {
           const spotImgName = estructuraJson?.spot?.img
           return typeof spotImgName === 'string' && spotImgName.trim()
