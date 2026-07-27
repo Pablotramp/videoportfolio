@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import SpotLink from '../assets/components/SpotLink.jsx'
+import getSpotImageUrl from '../assets/utils/getSpotImageUrl.js'
 
 const HEADER_HEIGHT = 64
 const FOOTER_HEIGHT = 41
@@ -58,7 +59,7 @@ function Home({ sections, spot }) {
   const [supportsFinePointer] = useState(SUPPORTS_FINE_POINTER)
 
   const sectionCount = sections.length
-  const hasSpotConfigured = typeof spot?.imgUrl === 'string' && spot.imgUrl.trim() !== ''
+  const hasSpotConfigured = getSpotImageUrl(spot) !== ''
   const homeStyle = {
     ...HOME_LAYOUT_STYLE,
     '--spot-space': spotVisible ? SPOT_SLOT_HEIGHT : '0px',

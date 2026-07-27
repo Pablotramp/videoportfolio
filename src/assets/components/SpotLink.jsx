@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import getSpotImageUrl from '../utils/getSpotImageUrl.js'
 
 const SPOTIFY_DEEP_LINK_REGEX = /^spotify:[a-zA-Z]+:[a-zA-Z0-9]+$/
 const SPOTIFY_ID_REGEX = /^[a-zA-Z0-9]{22}$/
@@ -58,7 +59,7 @@ export default function SpotLink({ spot, onReadyChange }) {
 
   const spotHref = useMemo(() => sanitizeSpotHref(spot?.link), [spot?.link])
   const spotifyDeepLink = useMemo(() => getSpotifyDeepLink(spotHref), [spotHref])
-  const spotImgUrl = typeof spot?.imgUrl === 'string' ? spot.imgUrl.trim() : ''
+  const spotImgUrl = getSpotImageUrl(spot)
   const isReady = Boolean(spotImgUrl && svgDataUrl && svgSourceUrl === spotImgUrl)
 
   useEffect(() => {
@@ -100,7 +101,7 @@ export default function SpotLink({ spot, onReadyChange }) {
       alt={spot?.platform ? `Anuncio ${spot.platform}` : 'Anuncio'}
       className="h-auto w-auto object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.35)]"
       style={{
-        maxHeight: 'var(--spot-max-h, 7rem)',
+        maxHeight: 'var(--spot-max-h, 6rem)',
         maxWidth: 'min(100%, var(--spot-max-w, 20rem))',
       }}
       loading="lazy"
