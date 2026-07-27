@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import SpotLink from '../assets/components/SpotLink.jsx'
 
 const HEADER_HEIGHT = 64
 const FOOTER_HEIGHT = 41
@@ -30,7 +31,7 @@ const BREADCRUMBS_STYLE = {
  */
 const SECTION_IMAGE_DEBUG = false
 
-function Home({ sections }) {
+function Home({ sections, spot }) {
   const sliderRef = useRef(null)
   const slideRefs = useRef([])
   const [activeIndex, setActiveIndex] = useState(0)
@@ -375,6 +376,7 @@ function Home({ sections }) {
           })}
         </ul>
       </nav>
+      <SpotLink spot={spot} />
     </section>
   )
 }
