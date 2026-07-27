@@ -95,13 +95,12 @@
   width: min(100%, 28rem);
 }
 
-/* CTA row: Abrir button + SpotLink inline */
+/* CTA row: Abrir button (+ optional SpotLink inline) */
 #secciones .section-slide__cta-row {
   display: flex;
   flex-direction: row;
   align-items: center;
   gap: 1rem;
-  width: 100%;
   --spot-max-h: clamp(2rem, 6vh, 3.5rem);
 }
 
@@ -192,6 +191,19 @@
   #secciones .section-slide__content {
     grid-column: 1;
     grid-row: 2;
+  }
+}
+
+/* Floating draggable spot — larger on big screens */
+.floating-spot {
+  --spot-max-h: 7rem;
+  --spot-max-w: 22rem;
+}
+
+@media (min-width: 1024px) {
+  .floating-spot {
+    --spot-max-h: 11rem;
+    --spot-max-w: 30rem;
   }
 }
 
