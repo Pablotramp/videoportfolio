@@ -53,33 +53,29 @@ function getSpotifyDeepLink(href) {
 
 export default function SpotLink({ spot }) {
   const [svgDataUrl, setSvgDataUrl] = useState(null)
-  const [loadingError, setLoadingError] = useState(false)
+  const [svgSourceUrl, setSvgSourceUrl] = useState(null)
 
   const spotHref = useMemo(() => sanitizeSpotHref(spot?.link), [spot?.link])
   const spotifyDeepLink = useMemo(() => getSpotifyDeepLink(spotHref), [spotHref])
   const spotImgUrl = typeof spot?.imgUrl === 'string' ? spot.imgUrl.trim() : ''
 
   useEffect(() => {
-    if (!spotImgUrl) {
-      setSvgDataUrl(null)
-      setLoadingError(false)
-      return undefined
-    }
+    if (!spotImgUrl) return undefined
 
     const controller = new AbortController()
 
     async function loadSpotSvg() {
       try {
-        setLoadingError(false)
         const response = await fetch(spotImgUrl, { signal: controller.signal })
         if (!response.ok) throw new Error('No se pudo cargar el SVG del spot.')
         const text = (await response.text()).trim()
         if (!/<svg[\s>]/i.test(text)) throw new Error('El TXT del spot no contiene un SVG válido.')
         setSvgDataUrl(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(text)}`)
+        setSvgSourceUrl(spotImgUrl)
       } catch (error) {
         if (error?.name === 'AbortError') return
         setSvgDataUrl(null)
-        setLoadingError(true)
+        setSvgSourceUrl(null)
       }
     }
 
@@ -88,7 +84,7 @@ export default function SpotLink({ spot }) {
     return () => controller.abort()
   }, [spotImgUrl])
 
-  if (!spotImgUrl || !svgDataUrl || loadingError) return null
+  if (!spotImgUrl || !svgDataUrl || svgSourceUrl !== spotImgUrl) return null
 
   const image = (
     <img
