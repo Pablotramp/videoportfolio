@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 const SPOTIFY_DEEP_LINK_REGEX = /^spotify:[a-zA-Z]+:[a-zA-Z0-9]+$/
 const SPOTIFY_ID_REGEX = /^[a-zA-Z0-9]{22}$/
@@ -54,6 +54,7 @@ function getSpotifyDeepLink(href) {
 export default function SpotLink({ spot, onReadyChange }) {
   const [svgDataUrl, setSvgDataUrl] = useState(null)
   const [svgSourceUrl, setSvgSourceUrl] = useState(null)
+  const reportedReadyRef = useRef(null)
 
   const spotHref = useMemo(() => sanitizeSpotHref(spot?.link), [spot?.link])
   const spotifyDeepLink = useMemo(() => getSpotifyDeepLink(spotHref), [spotHref])
@@ -61,6 +62,8 @@ export default function SpotLink({ spot, onReadyChange }) {
   const isReady = Boolean(spotImgUrl && svgDataUrl && svgSourceUrl === spotImgUrl)
 
   useEffect(() => {
+    if (reportedReadyRef.current === isReady) return
+    reportedReadyRef.current = isReady
     onReadyChange?.(isReady)
   }, [isReady, onReadyChange])
 

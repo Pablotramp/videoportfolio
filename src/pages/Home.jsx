@@ -59,8 +59,8 @@ function Home({ sections, spot }) {
   const hasSpotConfigured = typeof spot?.imgUrl === 'string' && spot.imgUrl.trim() !== ''
   const homeStyle = {
     ...HOME_LAYOUT_STYLE,
-    '--spot-space': spotVisible ? 'clamp(4.5rem, 14vh, 8.5rem)' : '0px',
-    '--spot-max-h': spotVisible ? 'clamp(3.75rem, 12vh, 7rem)' : '0px',
+    '--spot-space': spotVisible ? 'clamp(4rem, 12vh, 7.5rem)' : '0px',
+    '--spot-max-h': spotVisible ? 'clamp(3rem, 10vh, 6rem)' : '0px',
     '--spot-max-w': '20rem',
   }
 
