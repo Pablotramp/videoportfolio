@@ -14,6 +14,7 @@ export function normalizePortfolioContent(rawContent = {}) {
     loadingImgUrl = null,
     loadingImgTitleUrl = null,
     faviconUrl = null,
+    spotImgUrl = null,
   } = rawContent
 
   const parsedJson = parseEstructuraJson(estructuraJson)
@@ -25,6 +26,7 @@ export function normalizePortfolioContent(rawContent = {}) {
 
   const siteTitle = parsedJson.siteTitle ?? txtSiteTitle
   const resolvedFooter = parsedJson.footer
+  const resolvedSpot = parsedJson.spot
   const baseUrl = typeof r2BaseUrl === 'string' ? r2BaseUrl.replace(/\/$/, '') : null
 
   let sections
@@ -74,5 +76,13 @@ export function normalizePortfolioContent(rawContent = {}) {
     loadingTextColor: parsedJson.loading?.textColor ?? null,
     loadingBackgroundColor: parsedJson.loading?.backgroundColor ?? null,
     faviconUrl,
+    spot:
+      resolvedSpot && (resolvedSpot.platform || resolvedSpot.link || spotImgUrl)
+        ? {
+            platform: resolvedSpot.platform,
+            link: resolvedSpot.link,
+            imgUrl: spotImgUrl,
+          }
+        : null,
   }
 }

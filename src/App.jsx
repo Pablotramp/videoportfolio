@@ -108,6 +108,7 @@ function App() {
         footer={portfolio.footer}
         sections={portfolio.sections}
         siteTitle={portfolio.siteTitle}
+        spot={portfolio.spot}
         fullBleed={isFullBleedHome || isSectionPage}
       >
         {content}

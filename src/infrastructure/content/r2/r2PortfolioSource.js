@@ -508,6 +508,12 @@ export function createR2PortfolioSource(config = {}) {
             ? `${contentBaseUrl}/${faviconName.trim()}`
             : null
         })(),
+        spotImgUrl: (() => {
+          const spotImgName = estructuraJson?.spot?.img
+          return typeof spotImgName === 'string' && spotImgName.trim()
+            ? `${contentBaseUrl}/${spotImgName.trim()}`
+            : null
+        })(),
       }
     },
   }

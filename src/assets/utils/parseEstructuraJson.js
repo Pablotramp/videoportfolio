@@ -29,6 +29,11 @@
  *       "chargeTime"?: number,   // Seconds visible before auto-dismiss
  *       "textColor"?: string,    // Hex color for intro text
  *       "backgroundColor"?: string // Hex color for intro background
+ *     },
+ *     "spot"?: {
+ *       "platform" | "plataform"?: string, // Platform label (e.g. Spotify)
+ *       "link"?: string,                   // External/deep link
+ *       "img"?: string                     // TXT filename containing SVG markup
  *     }
  *   }
  *
@@ -51,6 +56,7 @@ const EMPTY_PARSED_ESTRUCTURA = Object.freeze({
   footer: null,
   loadingImg: null,
   loading: null,
+  spot: null,
 })
 
 /**
@@ -98,6 +104,21 @@ function normalizeChargeTime(value) {
 }
 
 /**
+ * Normalize spot CTA config.
+ *
+ * @param {unknown} value
+ * @returns {{ platform: string | null, link: string | null, img: string | null } | null}
+ */
+function normalizeSpot(value) {
+  if (!value || typeof value !== 'object') return null
+  const platform = normalizeString(value.platform ?? value.plataform)
+  const link = normalizeString(value.link)
+  const img = normalizeString(value.img)
+  if (!platform && !link && !img) return null
+  return { platform, link, img }
+}
+
+/**
  * Infer the section type from an entry object.
  * Priority: reel → 'reel', video → 'video', folder → 'folder', file → 'file'.
  *
@@ -134,6 +155,11 @@ function resolveSectionType(entry) {
  *     textColor: string | null,
  *     backgroundColor: string | null,
  *     imgTitle: string | null
+ *   } | null,
+ *   spot: {
+ *     platform: string | null,
+ *     link: string | null,
+ *     img: string | null
  *   } | null
  * }}
  */
@@ -199,5 +225,7 @@ export function parseEstructuraJson(raw) {
       }
     : null
 
-  return { siteTitle, favicon, sections, footer, loadingImg, loading }
+  const spot = normalizeSpot(raw.spot)
+
+  return { siteTitle, favicon, sections, footer, loadingImg, loading, spot }
 }

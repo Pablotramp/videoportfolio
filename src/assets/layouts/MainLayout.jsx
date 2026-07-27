@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import Header from '../components/Header.jsx'
+import SpotLink from '../components/SpotLink.jsx'
 
 function getFooterHref(link = {}) {
   return link.href ?? link.url ?? ''
@@ -9,7 +10,7 @@ function getFooterLabel(link = {}) {
   return link.label ?? link.text ?? link.title ?? getFooterHref(link)
 }
 
-function MainLayout({ footer, sections, siteTitle, children, fullBleed = false }) {
+function MainLayout({ footer, sections, siteTitle, spot, children, fullBleed = false }) {
   const footerRef = useRef(null)
 
   const footerTextFields = Object.entries(footer ?? {}).filter(
@@ -78,6 +79,7 @@ function MainLayout({ footer, sections, siteTitle, children, fullBleed = false }
           </div>
         </footer>
       )}
+      <SpotLink spot={spot} />
     </div>
   )
 }
