@@ -90,7 +90,7 @@ export default function SpotLink({ spot }) {
     <img
       src={svgDataUrl}
       alt={spot?.platform ? `Anuncio ${spot.platform}` : 'Anuncio'}
-      className="h-16 w-auto max-w-[8rem] object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.35)]"
+      className="h-40 w-auto max-w-[20rem] object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.35)]"
       loading="lazy"
     />
   )

@@ -205,21 +205,21 @@ function ReelSlide({ item, isActive, isMuted, onPlay, onPause, onEnded, slideRef
 
         {/* Profile avatar + social link — top-left corner inside the video */}
         {hasProfileImg && (
-          <div className="absolute top-3 left-3 z-10">
+          <div className="absolute top-3 left-3 z-10 flex items-center gap-2">
             {socialLink ? (
               <a
                 href={socialLink}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Perfil en redes sociales"
-                className="flex flex-col items-center gap-1"
+                className="flex items-center gap-2"
               >
                 <img
                   src={reelMeta.socialMediaImgUrl}
                   alt="Perfil"
                   className="h-24 w-24 shrink-0 rounded-full border-2 border-white object-cover shadow-md"
                 />
-                <span className="w-24 break-all text-center text-xs font-medium text-white">
+                <span className="max-w-[10rem] break-all rounded bg-black/40 px-2 py-0.5 text-xs font-medium text-white backdrop-blur-sm">
                   {socialLink.replace(/^https?:\/\//, '')}
                 </span>
               </a>

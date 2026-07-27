@@ -45,7 +45,7 @@ function App() {
 
   let content = (
     <Routes>
-      <Route path="/" element={<Home sections={portfolio.sections} />} />
+      <Route path="/" element={<Home sections={portfolio.sections} spot={portfolio.spot} />} />
       <Route
         path="/seccion/:slug"
         element={<SeccionPage sections={portfolio.sections} r2BaseUrl={portfolio.r2BaseUrl} sectionManifest={portfolio.sectionManifest} manifestFiles={portfolio.manifestFiles} />}
@@ -108,7 +108,6 @@ function App() {
         footer={portfolio.footer}
         sections={portfolio.sections}
         siteTitle={portfolio.siteTitle}
-        spot={portfolio.spot}
         fullBleed={isFullBleedHome || isSectionPage}
       >
         {content}
