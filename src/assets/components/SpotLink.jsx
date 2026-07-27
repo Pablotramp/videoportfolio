@@ -109,7 +109,7 @@ export default function SpotLink({ spot, onReadyChange }) {
   )
 
   return (
-    <div className="flex w-full items-end justify-center md:justify-end">
+    <div className="spot-link-container">
       {spotHref ? (
         <a
           href={spotHref}
