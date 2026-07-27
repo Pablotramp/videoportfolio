@@ -95,6 +95,8 @@ export default function SpotLink({ spot, onReadyChange }) {
 
   if (!isReady) return null
 
+  /* --spot-max-h and --spot-max-w are CSS custom properties set by the parent
+     context (e.g. .section-slide__cta-row in index.css). */
   const image = (
     <img
       src={svgDataUrl}
@@ -109,7 +111,7 @@ export default function SpotLink({ spot, onReadyChange }) {
   )
 
   return (
-    <div className="flex w-full items-end justify-center md:justify-end">
+    <div className="spot-link-container">
       {spotHref ? (
         <a
           href={spotHref}

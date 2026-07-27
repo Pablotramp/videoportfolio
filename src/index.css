@@ -95,22 +95,44 @@
   width: min(100%, 28rem);
 }
 
-#secciones .home-spot-slot {
-  flex: 0 0 var(--spot-space);
+/* CTA row: Abrir button + SpotLink inline */
+#secciones .section-slide__cta-row {
   display: flex;
-  min-height: var(--spot-space);
-  align-items: flex-end;
-  justify-content: center;
-  padding: 0 clamp(1rem, 4vw, 2rem);
+  flex-direction: row;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  --spot-max-h: clamp(2rem, 6vh, 3.5rem);
 }
 
-@media (min-width: 768px) {
-  #secciones .home-spot-slot {
-    justify-content: flex-end;
-  }
+/* SpotLink container — neutral wrapper; parent controls sizing */
+.spot-link-container {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+/* SpotLink inside the cta-row: fills remaining space up to 20rem */
+#secciones .section-slide__cta-row .spot-link-container {
+  flex: 1 1 auto;
+  max-width: 20rem;
+  min-width: 0;
 }
 
 @media (orientation: landscape) {
+  /* Large format: SpotLink below the Abrir button */
+  #secciones .section-slide__cta-row {
+    flex-direction: column;
+    align-items: flex-start;
+    --spot-max-h: clamp(3rem, 10vh, 6rem);
+  }
+
+  #secciones .section-slide__cta-row .spot-link-container {
+    flex: none;
+    width: 100%;
+    max-width: 20rem;
+  }
+
   #secciones .section-slide {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-template-rows: minmax(0, 1fr);

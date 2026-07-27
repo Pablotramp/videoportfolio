@@ -9,17 +9,13 @@ const AUTOPLAY_MS = 4500
 const INTERACTION_PAUSE_MS = 2200
 const WHEEL_DEBOUNCE_MS = 550
 const DEFAULT_MEDIA_BACKGROUND = '#0a0a0a'
-const SPOT_SLOT_HEIGHT = 'clamp(4rem, 12vh, 7.5rem)'
-const SPOT_MAX_HEIGHT = 'clamp(3rem, 10vh, 6rem)'
 const SPOT_MAX_WIDTH = '20rem'
 const HOME_HEIGHT = `calc(100dvh - ${HEADER_HEIGHT}px - var(--footer-h, ${FOOTER_HEIGHT}px))`
-const SLIDE_HEIGHT = `calc(${HOME_HEIGHT} - var(--spot-space, 0px))`
 const HOME_LAYOUT_STYLE = {
   minHeight: `calc(100vh - ${HEADER_HEIGHT}px - var(--footer-h, ${FOOTER_HEIGHT}px))`,
   height: HOME_HEIGHT,
 }
-const SLIDE_HEIGHT_STYLE = { height: SLIDE_HEIGHT }
-const SLIDE_LAYOUT_STYLE = { height: SLIDE_HEIGHT }
+const HEIGHT_STYLE = { height: HOME_HEIGHT }
 const PRIMARY_MOUSE_BUTTON = 0
 const SUPPORTS_FINE_POINTER =
   typeof window !== 'undefined' &&
@@ -44,7 +40,6 @@ function Home({ sections, spot }) {
   const sliderRef = useRef(null)
   const slideRefs = useRef([])
   const [activeIndex, setActiveIndex] = useState(0)
-  const [spotVisible, setSpotVisible] = useState(false)
   const activeIndexRef = useRef(0)
   const [isInteracting, setIsInteracting] = useState(false)
   const interactionTimerRef = useRef(null)
@@ -63,8 +58,6 @@ function Home({ sections, spot }) {
   const hasSpotConfigured = getSpotImageUrl(spot) !== ''
   const homeStyle = {
     ...HOME_LAYOUT_STYLE,
-    '--spot-space': spotVisible ? SPOT_SLOT_HEIGHT : '0px',
-    '--spot-max-h': spotVisible ? SPOT_MAX_HEIGHT : '0px',
     '--spot-max-w': SPOT_MAX_WIDTH,
   }
 
@@ -265,7 +258,7 @@ function Home({ sections, spot }) {
 
   return (
     <section className="flex w-full flex-col" id="secciones" style={homeStyle}>
-      <div className="relative" style={SLIDE_HEIGHT_STYLE}>
+      <div className="relative" style={HEIGHT_STYLE}>
         <div
           ref={sliderRef}
           className={`section-slider flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden scroll-smooth touch-pan-x select-none ${
@@ -283,7 +276,7 @@ function Home({ sections, spot }) {
           onPointerUp={handlePointerEnd}
           onPointerCancel={handlePointerEnd}
           tabIndex={0}
-          style={SLIDE_HEIGHT_STYLE}
+          style={HEIGHT_STYLE}
         >
           {sections.map((section, index) => {
             const imageErrored = SECTION_IMAGE_DEBUG && section.hasConfiguredImage && failedImages.has(section.entryName)
@@ -302,7 +295,7 @@ function Home({ sections, spot }) {
                 className="section-slide relative min-w-full snap-start"
                 aria-label={section.name}
                 style={{
-                  ...SLIDE_LAYOUT_STYLE,
+                  ...HEIGHT_STYLE,
                   backgroundColor: sectionSurfaceColor,
                 }}
               >
@@ -351,13 +344,16 @@ function Home({ sections, spot }) {
                 >
                   <div className="section-slide__content-inner">
                     <h2 className="m-0 font-serif text-4xl font-semibold tracking-tight md:text-5xl">{section.name}</h2>
-                    <Link
-                      className={`inline-flex w-fit items-center justify-center border px-4 py-2 text-sm uppercase tracking-[0.1em] no-underline transition ${openButtonClass}`}
-                      aria-label={`Abrir ${section.name}`}
-                      to={`/seccion/${section.slug}`}
-                    >
-                      Abrir
-                    </Link>
+                    <div className="section-slide__cta-row">
+                      <Link
+                        className={`inline-flex w-fit items-center justify-center border px-4 py-2 text-sm uppercase tracking-[0.1em] no-underline transition ${openButtonClass}`}
+                        aria-label={`Abrir ${section.name}`}
+                        to={`/seccion/${section.slug}`}
+                      >
+                        Abrir
+                      </Link>
+                      {hasSpotConfigured && <SpotLink spot={spot} />}
+                    </div>
                   </div>
                 </div>
               </article>
@@ -395,12 +391,6 @@ function Home({ sections, spot }) {
           </ul>
         </nav>
       </div>
-
-      {hasSpotConfigured && (
-        <div className="home-spot-slot">
-          <SpotLink spot={spot} onReadyChange={setSpotVisible} />
-        </div>
-      )}
     </section>
   )
 }
